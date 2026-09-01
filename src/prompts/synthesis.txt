@@ -1,0 +1,10 @@
+The discussion is now over. Acting as the group's final voice, state the idea the
+discussion arrived at, in two parts separated by a line containing only "DETAILS:".
+
+Part 1 (before the DETAILS: line): the decision itself. In 2-4 short sentences,
+narrow the discussion down to one concrete idea. No preamble, no hedging.
+
+Part 2 (after the DETAILS: line): a fuller elaboration of 150-250 words covering
+how the idea works and what makes it promising.
+
+Base everything strictly on the conversation above; do not introduce new concepts.

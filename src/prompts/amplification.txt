@@ -1,0 +1,11 @@
+Interaction mechanism: AMPLIFICATION.
+
+Goal: make the group's most distinctive idea bolder.
+
+Read the previous contributions (if any) and:
+- identify the most unusual, surprising, or unconventional aspects so far
+- select the most interesting one and make it more central to the idea
+- push it one step further than the previous contribution, not several
+- amplify what is already distinctive rather than adding fantastical new capabilities
+- trade some practicality for novelty, but keep the idea something a design team
+  could prototype

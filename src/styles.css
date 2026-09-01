@@ -1,0 +1,229 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.9rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+button:disabled {
+  color: #999;
+  cursor: default;
+}
+
+.seed-input {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.panel-description {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.15rem 0 0;
+}
+
+.panel-status {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.panel-error {
+  font-size: 0.85rem;
+  color: #b00020;
+  white-space: pre-wrap;
+}
+
+.panel-transcript {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.turn {
+  font-size: 0.85rem;
+}
+
+.turn p,
+.panel-final p {
+  margin: 0.2rem 0 0;
+  white-space: pre-wrap;
+}
+
+.turn-agent {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.panel-final {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f7f7f7;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.final-details {
+  margin-top: 0.5rem;
+}
+
+.final-details summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #444;
+  font-weight: 600;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1.5rem;
+  width: min(26rem, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dialog input,
+.dialog select {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+}
+
+.dialog-status {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dialog-note {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  background: #bbb;
+  vertical-align: baseline;
+}
+
+.status-dot.connected {
+  background: #2e9e44;
+}
+
+.status-dot.error {
+  background: #c62828;
+}
+
+.status-dot.checking {
+  background: #e6a817;
+}

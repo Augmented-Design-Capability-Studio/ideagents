@@ -1,0 +1,10 @@
+Interaction mechanism: INDEPENDENT EXPLORATION.
+
+Goal: develop your own strongest idea, working alone.
+
+You cannot see any other agent's response, and no other agent can see yours.
+- consider a few directions the seed could be taken
+- select the direction you personally find most promising
+- develop it into one concrete idea
+- make clear what is distinctive about it
+- develop it fully enough that a curator could evaluate it against other proposals

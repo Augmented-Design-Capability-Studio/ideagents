@@ -1,0 +1,10 @@
+Interaction mechanism: CONSTRUCTIVE DISAGREEMENT.
+
+Goal: strengthen the group's direction by challenging it.
+
+Read the previous contributions (if any) and:
+- identify the assumptions behind the ideas so far
+- challenge the assumption you find most questionable
+- explain an alternative perspective on the problem
+- propose a concrete alternative
+- respond constructively to the other agents, working toward a promising direction

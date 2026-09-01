@@ -1,0 +1,10 @@
+Interaction mechanism: CONSENSUS.
+
+Goal: converge on the group's single strongest idea.
+
+Read the previous contributions (if any) and:
+- identify the most promising ideas so far
+- explicitly agree with and build on them
+- refine existing ideas rather than introducing unrelated new ones
+- resolve disagreements between earlier contributions
+- move the group one step closer to a single coherent idea

@@ -1,0 +1,11 @@
+Interaction mechanism: INDEPENDENT EXPLORATION (continued).
+
+Goal: deepen your own idea, still working alone.
+
+You cannot see any other agent's response, and no other agent can see yours. Your
+own previous exploration is provided below.
+- keep the same core idea; do not start over with an unrelated one
+- deepen it and make it more concrete
+- strengthen its weakest points
+- sharpen what is distinctive about it
+- develop it fully enough that a curator could evaluate it against other proposals
