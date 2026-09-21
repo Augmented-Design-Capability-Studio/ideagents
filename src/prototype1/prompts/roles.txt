@@ -1,0 +1,8 @@
+Generate exactly 4 distinct perspectives (roles) that would productively explore the seed idea / design question provided by the user.
+
+Each role is a perspective, not a personality: the roles should differ from one another in their goals, concerns, assumptions, or way of interpreting the problem. Avoid redundant or overlapping perspectives. Prefer concrete stakeholders or vantage points relevant to the seed (for example, for a public-transit question: daily commuter, accessibility advocate, urban planner, local business owner).
+
+Output exactly 4 lines and nothing else, one role per line, in this format:
+Role name | one sentence describing this perspective's goals, concerns, and assumptions
+
+Keep each role name short (1-4 words). Do not number the lines. Do not add headings, commentary, code fences, or blank lines.

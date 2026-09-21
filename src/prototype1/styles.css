@@ -61,6 +61,9 @@ button:disabled {
   border: 1px solid #ccc;
   border-radius: 4px;
   margin-bottom: 1.5rem;
+  display: block;
+  resize: none;
+  overflow: hidden;
 }
 
 .panel-grid {
@@ -117,6 +120,31 @@ button:disabled {
 
 .turn {
   font-size: 0.85rem;
+  border-left: 3px solid var(--agent-color, #ddd);
+  padding-left: 0.6rem;
+}
+
+/* One stable color per agent slot (agent/explorer N and role N share a slot),
+   used in both the roles list and the chat transcripts. */
+.agent-0 {
+  --agent-color: #1565c0;
+}
+
+.agent-1 {
+  --agent-color: #2e7d32;
+}
+
+.agent-2 {
+  --agent-color: #e65100;
+}
+
+.agent-3 {
+  --agent-color: #6a1b9a;
+}
+
+.turn .turn-agent,
+.role .turn-agent {
+  color: var(--agent-color, #444);
 }
 
 .turn p,
@@ -148,6 +176,38 @@ button:disabled {
   font-size: 0.8rem;
   color: #444;
   font-weight: 600;
+}
+
+.roles-panel {
+  margin-bottom: 1rem;
+}
+
+.roles-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.roles-list {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+
+@media (max-width: 720px) {
+  .roles-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.role {
+  font-size: 0.85rem;
+}
+
+.role p {
+  margin: 0.1rem 0 0;
+  color: #555;
 }
 
 .dialog-backdrop {

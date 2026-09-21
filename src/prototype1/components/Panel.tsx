@@ -45,7 +45,7 @@ export function Panel({ id, state, onRun }: Props) {
       {state.turns.length > 0 && (
         <div className="panel-transcript">
           {state.turns.map((t, i) => (
-            <div key={i} className="turn">
+            <div key={i} className={`turn agent-${t.index % 4}`}>
               <span className="turn-agent">{t.agent}</span>
               <p>{t.text}</p>
             </div>

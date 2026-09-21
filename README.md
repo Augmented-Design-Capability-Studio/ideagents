@@ -1,15 +1,8 @@
-# Multi-Agent Ideation Prototype
+# Ideagents Prototypes
 
-A minimal web prototype for exploring how different multi-agent discussion
-mechanisms shape ideation outcomes. Enter a seed idea, then run any of four
-mechanisms side by side and compare the results:
-
-- Consensus: agents agree with and refine an emerging idea.
-- Amplification: agents find an unusual aspect and push it further.
-- Constructive Disagreement: agents challenge assumptions and develop alternatives.
-- Independent Exploration: isolated agents explore separately, then a curator synthesizes.
-
-This is a research prototype for internal exploration, not a production app.
+A collection of small research prototypes for exploring multi-agent
+ideation. Running `npm run dev` serves a home page listing every prototype;
+click one to open it.
 
 ## Running locally
 
@@ -18,27 +11,22 @@ npm install
 npm run dev
 ```
 
-Open the printed URL, click Agent, and paste a Gemini API key. The key is stored
-in the browser's local storage only and is sent only to the Gemini API. The Agent
-dialog also selects the model and shows the connection status; the Settings
-dialog holds experiment parameters (rounds per run).
+## Structure
 
-## Editing the experiment
+Each prototype is a self-contained Vite entry point:
 
-- Prompts for all four mechanisms are plain-text files in `src/prompts/`.
-  All mechanisms share `system.txt`; only the mechanism instruction differs.
-  Edit these files directly to change agent behavior.
-- The model is selected in the Agent dialog (default: gemini-3.5-flash-lite) and
-  rounds in the Settings dialog. The list of offered models, temperature, agent
-  counts, and defaults are in `src/config.ts`.
-- Orchestration logic (turn order, transcript assembly) is in `src/mechanisms.ts`.
+- `index.html` + `src/home/` — the home page listing all prototypes.
+- `prototype1/index.html` + `src/prototype1/` — [Prototype 1: Multi-Agent
+  Ideation](prototype1/README.md).
 
-## Notes
+Prototypes are registered in `src/prototypes.ts` (title, description, path)
+so they show up on the home page.
 
-- All mechanisms use 4 agents and run for the same number of rounds (set in
-  Settings, default 2). In conversational mechanisms, agents take turns on a
-  shared transcript each round. In Independent Exploration, each explorer deepens
-  its own idea each round without seeing the others, and the curator sees only
-  final-round proposals. Every condition therefore costs 4 x rounds + 1 API calls. Running all four panels at once makes many requests quickly;
-  free-tier API keys may hit rate limits, which appear as errors in the panel.
-- Results are kept on screen until that panel is run again. Nothing is persisted.
+## Adding a new prototype
+
+1. Create `src/prototypeN/` for its source and `prototypeN/index.html` for
+   its entry HTML (copy `prototype1/index.html` as a starting point, pointing
+   `<script src>` at `/src/prototypeN/main.tsx`).
+2. Add an entry to `src/prototypes.ts`.
+3. Add its HTML file to the `build.rollupOptions.input` map in
+   `vite.config.ts` so `npm run build` picks it up.

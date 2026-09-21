@@ -28,9 +28,17 @@ export const MAX_ROUNDS = 5;
 
 export const AGENTS_PER_DISCUSSION = 4;
 
+// Approximate word cap for a single agent turn (adjustable in Settings; this is
+// the default). Injected into the shared system prompt. The synthesis/curator
+// prompts define their own lengths and are unaffected.
+export const DEFAULT_TURN_WORDS = 80;
+export const MIN_TURN_WORDS = 40;
+export const MAX_TURN_WORDS = 200;
+
 // Independent exploration runs this many isolated agents, then one curator.
 export const INDEPENDENT_EXPLORERS = 4;
 
 export const API_KEY_STORAGE_KEY = "gemini_api_key";
 export const MODEL_STORAGE_KEY = "gemini_model";
 export const ROUNDS_STORAGE_KEY = "ideation_rounds";
+export const TURN_WORDS_STORAGE_KEY = "ideation_turn_words";

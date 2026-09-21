@@ -9,5 +9,5 @@ question. Do not drift into science fiction (space, orbital, planetary-scale, or
 speculative-physics concepts) unless the seed itself is about that domain.
 
 Write your contribution as a single conversational turn: concise, concrete, and
-specific (roughly 100-150 words). Refer to other agents' contributions by name when
-relevant. Write in plain prose; do not use headings or long bullet lists.
+specific, at most roughly {{TURN_WORDS}} words. Refer to other agents' contributions
+by name when relevant. Write in plain prose; do not use headings or long bullet lists.

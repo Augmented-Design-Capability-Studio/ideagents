@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { AgentDialog } from "./components/AgentDialog";
 import { Panel, initialPanelState } from "./components/Panel";
 import type { PanelState } from "./components/Panel";
+import { RolesPanel, initialRolesState } from "./components/RolesPanel";
+import type { RolesState } from "./components/RolesPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
 import type { ConnectionState } from "./connection";
 import { checkConnection } from "./gemini";
 import type { MechanismId } from "./mechanisms";
 import { runMechanism } from "./mechanisms";
+import { generateRoles } from "./roles";
 import { getApiKey } from "./storage";
 
 const MECHANISMS: MechanismId[] = [
@@ -28,6 +31,7 @@ const initialStates: PanelStates = {
 export default function App() {
   const [seed, setSeed] = useState("");
   const [panels, setPanels] = useState<PanelStates>(initialStates);
+  const [rolesState, setRolesState] = useState<RolesState>(initialRolesState);
   const [agentOpen, setAgentOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connection, setConnection] = useState<ConnectionState>({
@@ -60,6 +64,34 @@ export default function App() {
     setPanels((prev) => ({ ...prev, [id]: { ...prev[id], ...update } }));
   };
 
+  const handleGenerateRoles = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      setAgentOpen(true);
+      return;
+    }
+    if (!seed.trim()) {
+      setRolesState((prev) => ({
+        ...prev,
+        status: "error",
+        error: "Enter a seed idea first.",
+      }));
+      return;
+    }
+    // Regenerating replaces any previous roles (roles are not persisted).
+    setRolesState({ status: "running", roles: null, error: null });
+    try {
+      const roles = await generateRoles(seed.trim(), apiKey);
+      setRolesState({ status: "done", roles, error: null });
+    } catch (err) {
+      setRolesState({
+        status: "error",
+        roles: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
   const run = async (id: MechanismId) => {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -80,18 +112,24 @@ export default function App() {
     });
 
     try {
-      await runMechanism(id, seed.trim(), apiKey, (e) => {
-        if (e.type === "status") {
-          patch(id, { statusText: e.text });
-        } else if (e.type === "turn") {
-          setPanels((prev) => ({
-            ...prev,
-            [id]: { ...prev[id], turns: [...prev[id].turns, e.turn] },
-          }));
-        } else {
-          patch(id, { final: e.idea });
-        }
-      });
+      await runMechanism(
+        id,
+        seed.trim(),
+        apiKey,
+        (e) => {
+          if (e.type === "status") {
+            patch(id, { statusText: e.text });
+          } else if (e.type === "turn") {
+            setPanels((prev) => ({
+              ...prev,
+              [id]: { ...prev[id], turns: [...prev[id].turns, e.turn] },
+            }));
+          } else {
+            patch(id, { final: e.idea });
+          }
+        },
+        rolesState.roles
+      );
       patch(id, { status: "done" });
     } catch (err) {
       patch(id, {
@@ -114,11 +152,23 @@ export default function App() {
         </div>
       </header>
 
-      <input
+      <textarea
         className="seed-input"
         placeholder="Seed idea / design question"
+        rows={1}
         value={seed}
-        onChange={(e) => setSeed(e.target.value)}
+        onChange={(e) => {
+          setSeed(e.target.value);
+          // Auto-grow to fit the content.
+          e.target.style.height = "auto";
+          e.target.style.height = `${e.target.scrollHeight}px`;
+        }}
+      />
+
+      <RolesPanel
+        state={rolesState}
+        onGenerate={() => void handleGenerateRoles()}
+        onClear={() => setRolesState(initialRolesState)}
       />
 
       <div className="panel-grid">
