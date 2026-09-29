@@ -1,12 +1,12 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #0f1115;
-  color: #e6e6e6;
+  background: #ffffff;
+  color: #1a1d21;
 }
 
 .home {
@@ -20,7 +20,7 @@ body {
 }
 
 .home-intro {
-  color: #9aa0a6;
+  color: #5f6570;
   margin-bottom: 2rem;
 }
 
@@ -34,14 +34,14 @@ body {
 }
 
 .prototype-card {
-  border: 1px solid #2a2d34;
+  border: 1px solid #dfe2e6;
   border-radius: 8px;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .prototype-card:hover {
   border-color: #4a90e2;
-  background: #161922;
+  background: #f5f8fd;
 }
 
 .prototype-card a {
@@ -54,12 +54,12 @@ body {
 .prototype-card h2 {
   margin: 0 0 0.5rem;
   font-size: 1.1rem;
-  color: #4a90e2;
+  color: #3872c2;
 }
 
 .prototype-card p {
   margin: 0;
-  color: #c2c6cc;
+  color: #444a52;
   font-size: 0.95rem;
   line-height: 1.4;
 }

@@ -1,20 +1,6 @@
 // Central configuration for the prototype. Everything tweakable lives here.
-
-// Model list current as of September 2026 (https://ai.google.dev/gemini-api/docs/models).
-// The selected model is chosen in the Settings dialog and stored in local storage.
-export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
-
-export const GEMINI_MODEL_OPTIONS = [
-  "gemini-3.5-flash-lite",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.1-flash-lite",
-  "gemini-3.1-pro-preview",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-pro",
-];
+// Gemini connection config (model list, API key storage) is shared across
+// all prototypes — see src/shared/config.ts.
 
 export const TEMPERATURE = 1.0;
 
@@ -38,7 +24,5 @@ export const MAX_TURN_WORDS = 200;
 // Independent exploration runs this many isolated agents, then one curator.
 export const INDEPENDENT_EXPLORERS = 4;
 
-export const API_KEY_STORAGE_KEY = "gemini_api_key";
-export const MODEL_STORAGE_KEY = "gemini_model";
 export const ROUNDS_STORAGE_KEY = "ideation_rounds";
 export const TURN_WORDS_STORAGE_KEY = "ideation_turn_words";

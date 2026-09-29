@@ -1,5 +1,6 @@
-import { AGENTS_PER_DISCUSSION } from "./config";
-import { callGemini } from "./gemini";
+import { callGemini } from "../shared/gemini";
+import { getModel } from "../shared/storage";
+import { AGENTS_PER_DISCUSSION, TEMPERATURE } from "./config";
 import { ROLES_PROMPT } from "./prompts";
 
 // A role is a perspective (goals, concerns, assumptions), not a personality.
@@ -39,8 +40,10 @@ export async function generateRoles(
 ): Promise<AgentRole[]> {
   const text = await callGemini(
     apiKey,
+    getModel(),
     ROLES_PROMPT,
-    `Seed idea / design question:\n${seed}`
+    `Seed idea / design question:\n${seed}`,
+    { temperature: TEMPERATURE }
   );
   return parseRoles(text);
 }

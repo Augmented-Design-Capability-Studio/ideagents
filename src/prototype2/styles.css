@@ -1,0 +1,211 @@
+/* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
+
+.p2-app {
+  max-width: 720px;
+}
+
+.p2-section {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.p2-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.p2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.p2-field textarea {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.p2-concepts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.p2-concept-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.p2-concept-row input:first-child {
+  flex: 0 0 12rem;
+}
+
+.p2-concept-row input:nth-child(2) {
+  flex: 1;
+}
+
+.p2-concept-row input {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.p2-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.p2-row input,
+.p2-row select {
+  font: inherit;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.p2-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.15rem 0 0.5rem;
+}
+
+.p2-error {
+  font-size: 0.85rem;
+  color: #b00020;
+  white-space: pre-wrap;
+}
+
+.p2-badge {
+  font-size: 0.7rem;
+  color: #6a1b9a;
+  background: #f3e5f5;
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+}
+
+.p2-axes,
+.p2-boundaries,
+.p2-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.p2-axis-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.p2-axis-row input {
+  flex: 1;
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.p2-axis-row select {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.p2-qual-axis {
+  border-top: 1px solid #eee;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.p2-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.p2-rating-row input {
+  width: 5rem;
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.p2-pairwise {
+  margin-top: 0.5rem;
+}
+
+.p2-pairwise-choices {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.p2-excluded {
+  font-size: 0.875rem;
+  background: #fff6f6;
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+}
+
+.p2-excluded ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.p2-plot {
+  width: 100%;
+  height: auto;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.p2-plot-label {
+  font-size: 11px;
+  fill: #555;
+}
+
+.p2-plot-point-label {
+  font-size: 10px;
+  fill: #333;
+}
+
+.p2-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #444;
+  margin-top: 0.5rem;
+}
+
+.p2-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.p2-gap-note {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f7f7f7;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}

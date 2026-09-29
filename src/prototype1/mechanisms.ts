@@ -1,5 +1,6 @@
-import { AGENTS_PER_DISCUSSION, INDEPENDENT_EXPLORERS } from "./config";
-import { callGemini } from "./gemini";
+import { callGemini } from "../shared/gemini";
+import { getModel } from "../shared/storage";
+import { AGENTS_PER_DISCUSSION, INDEPENDENT_EXPLORERS, TEMPERATURE } from "./config";
 import {
   CURATOR_PROMPT,
   EXPLORER_PROMPT,
@@ -106,7 +107,9 @@ async function runDiscussion(
           .filter(Boolean)
           .join("\n"),
       ].join("\n\n");
-      const text = await callGemini(apiKey, system, user);
+      const text = await callGemini(apiKey, getModel(), system, user, {
+        temperature: TEMPERATURE,
+      });
       const turn = { agent, text, index: a - 1 };
       turns.push(turn);
       onEvent({ type: "turn", turn });
@@ -119,7 +122,9 @@ async function runDiscussion(
     `Discussion so far:\n${formatTranscript(turns)}`,
     SYNTHESIS_PROMPT,
   ].join("\n\n");
-  const final = await callGemini(apiKey, system, user);
+  const final = await callGemini(apiKey, getModel(), system, user, {
+    temperature: TEMPERATURE,
+  });
   onEvent({ type: "final", idea: parseFinal(final) });
 }
 
@@ -159,7 +164,9 @@ async function runIndependent(
               `Your previous exploration:\n${text}`,
               `${identity}\nContinue developing your idea.`,
             ].join("\n\n");
-        text = await callGemini(apiKey, system, user);
+        text = await callGemini(apiKey, getModel(), system, user, {
+          temperature: TEMPERATURE,
+        });
         onEvent({
           type: "turn",
           turn: {
@@ -178,7 +185,13 @@ async function runIndependent(
     `Seed idea / design question:\n${seed}`,
     `Independent proposals:\n${formatTranscript(explorations)}`,
   ].join("\n\n");
-  const final = await callGemini(apiKey, `${getSystemPrompt()}\n\n${CURATOR_PROMPT}`, user);
+  const final = await callGemini(
+    apiKey,
+    getModel(),
+    `${getSystemPrompt()}\n\n${CURATOR_PROMPT}`,
+    user,
+    { temperature: TEMPERATURE }
+  );
   onEvent({ type: "final", idea: parseFinal(final) });
 }
 

@@ -5,7 +5,7 @@ export function Home() {
     <main className="home">
       <h1>Ideagents Prototypes</h1>
       <p className="home-intro">
-        Research prototypes for exploring multi-agent ideation. Pick one below.
+        Research prototypes for exploring multi-agent ideation.
       </p>
       <ul className="prototype-list">
         {PROTOTYPES.map((p) => (

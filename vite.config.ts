@@ -13,6 +13,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         prototype1: resolve(__dirname, "prototype1/index.html"),
+        prototype2: resolve(__dirname, "prototype2/index.html"),
+        prototype3: resolve(__dirname, "prototype3/index.html"),
+        prototype4: resolve(__dirname, "prototype4/index.html"),
       },
     },
   },

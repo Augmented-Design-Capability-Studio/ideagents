@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
-import { AgentDialog } from "./components/AgentDialog";
+import { useState } from "react";
+import { AgentButton } from "../shared/components/AgentButton";
+import { AgentDialog } from "../shared/components/AgentDialog";
+import { useGeminiConnection } from "../shared/hooks/useGeminiConnection";
+import { getApiKey } from "../shared/storage";
 import { Panel, initialPanelState } from "./components/Panel";
 import type { PanelState } from "./components/Panel";
 import { RolesPanel, initialRolesState } from "./components/RolesPanel";
 import type { RolesState } from "./components/RolesPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
-import type { ConnectionState } from "./connection";
-import { checkConnection } from "./gemini";
 import type { MechanismId } from "./mechanisms";
 import { runMechanism } from "./mechanisms";
 import { generateRoles } from "./roles";
-import { getApiKey } from "./storage";
 
 const MECHANISMS: MechanismId[] = [
   "consensus",
@@ -34,31 +34,7 @@ export default function App() {
   const [rolesState, setRolesState] = useState<RolesState>(initialRolesState);
   const [agentOpen, setAgentOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [connection, setConnection] = useState<ConnectionState>({
-    state: "no-key",
-  });
-
-  const refreshConnection = async () => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setConnection({ state: "no-key" });
-      return;
-    }
-    setConnection({ state: "checking" });
-    try {
-      await checkConnection(apiKey);
-      setConnection({ state: "connected" });
-    } catch (err) {
-      setConnection({
-        state: "error",
-        message: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
-
-  useEffect(() => {
-    void refreshConnection();
-  }, []);
+  const { connection, refresh: refreshConnection } = useGeminiConnection();
 
   const patch = (id: MechanismId, update: Partial<PanelState>) => {
     setPanels((prev) => ({ ...prev, [id]: { ...prev[id], ...update } }));
@@ -144,10 +120,7 @@ export default function App() {
       <header className="app-header">
         <h1>Multi-Agent Ideation</h1>
         <div className="header-buttons">
-          <button onClick={() => setAgentOpen(true)}>
-            <span className={`status-dot ${connection.state}`} />
-            Agent
-          </button>
+          <AgentButton connection={connection} onClick={() => setAgentOpen(true)} />
           <button onClick={() => setSettingsOpen(true)}>Settings</button>
         </div>
       </header>
