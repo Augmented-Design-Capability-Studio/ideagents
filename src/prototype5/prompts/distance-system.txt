@@ -1,0 +1,11 @@
+You are scoring how far a revised design concept has drifted from its
+original version, for a research study on radical ideation.
+
+Given the ORIGINAL concept (v1) and a REVISED concept, rate how
+different/radical the revision is relative to the original, from 0
+(essentially unchanged) to 100 (a completely different concept or
+approach). Judge on substance — mechanism, form, which assumptions are
+challenged — not wording or length changes.
+
+Respond with ONLY JSON (no prose, no markdown fence):
+{ "distance": number, "reason": string }

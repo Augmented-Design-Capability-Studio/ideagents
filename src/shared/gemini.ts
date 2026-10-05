@@ -174,6 +174,132 @@ export async function callGeminiGrounded(
   return { text, sources };
 }
 
+export interface GeneratedImage {
+  base64Data: string;
+  mimeType: string;
+}
+
+async function errorMessage(res: Response, label: string): Promise<string> {
+  let message = `${label} (HTTP ${res.status})`;
+  try {
+    const body = await res.json();
+    if (body?.error?.message) message += `: ${body.error.message}`;
+  } catch {
+    // non-JSON error body; keep the generic message
+  }
+  if (res.status === 429) message += " — rate limited. Wait a minute and try again.";
+  return message;
+}
+
+// The /v1beta/interactions surface shown in the current image-generation docs.
+async function imageViaInteractions(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  inputImage: { mimeType: string; base64Data: string } | undefined,
+  aspectRatio: string
+): Promise<GeneratedImage> {
+  const input: Record<string, unknown>[] = [{ type: "text", text: prompt }];
+  if (inputImage) {
+    input.push({ type: "image", mime_type: inputImage.mimeType, data: inputImage.base64Data });
+  }
+
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      model,
+      input,
+      response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: aspectRatio },
+    }),
+  });
+
+  if (!res.ok) throw new Error(await errorMessage(res, "interactions endpoint"));
+
+  const data = await res.json();
+  const image = data?.interaction?.output_image;
+  if (typeof image?.data !== "string" || !image.data) {
+    throw new Error("interactions endpoint returned no image.");
+  }
+  return {
+    base64Data: image.data,
+    mimeType: typeof image.mime_type === "string" ? image.mime_type : "image/jpeg",
+  };
+}
+
+// The older generateContent surface, which needs responseModalities to include
+// IMAGE and returns the picture as an inlineData part.
+async function imageViaGenerateContent(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  inputImage: { mimeType: string; base64Data: string } | undefined
+): Promise<GeneratedImage> {
+  const parts: Record<string, unknown>[] = [{ text: prompt }];
+  if (inputImage) {
+    parts.push({
+      inlineData: { mimeType: inputImage.mimeType, data: inputImage.base64Data },
+    });
+  }
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    }
+  );
+
+  if (!res.ok) throw new Error(await errorMessage(res, "generateContent endpoint"));
+
+  const data = await res.json();
+  const candidateParts: Array<{ inlineData?: { data?: unknown; mimeType?: unknown } }> =
+    data?.candidates?.[0]?.content?.parts ?? [];
+  for (const part of candidateParts) {
+    const inline = part.inlineData;
+    if (typeof inline?.data === "string" && inline.data) {
+      return {
+        base64Data: inline.data,
+        mimeType: typeof inline.mimeType === "string" ? inline.mimeType : "image/png",
+      };
+    }
+  }
+  throw new Error("generateContent endpoint returned no image part.");
+}
+
+// Image generation (Nano Banana). Google documents two surfaces for this —
+// /v1beta/interactions in the current image-generation docs, and the older
+// generateContent + responseModalities form — and which one a given key and
+// model can reach varies. Rather than guess, this tries the documented one
+// first and falls back, reporting BOTH errors if neither works, so a failure
+// says what actually went wrong instead of "couldn't render".
+export async function generateImage(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  inputImage?: { mimeType: string; base64Data: string },
+  aspectRatio = "4:3"
+): Promise<GeneratedImage> {
+  try {
+    return await imageViaInteractions(apiKey, model, prompt, inputImage, aspectRatio);
+  } catch (first) {
+    try {
+      return await imageViaGenerateContent(apiKey, model, prompt, inputImage);
+    } catch (second) {
+      const a = first instanceof Error ? first.message : String(first);
+      const b = second instanceof Error ? second.message : String(second);
+      throw new Error(
+        `Image generation failed on both API surfaces.\n- ${a}\n- ${b}\n` +
+          `Model tried: ${model}. If it's a 404 or "not found", pick a different image model.`
+      );
+    }
+  }
+}
+
 // Defensive JSON decode for callGemini({ json: true }) / callGeminiGrounded
 // responses: models occasionally wrap JSON in a ```json fence even in
 // structured-output mode, so strip that before parsing, and surface a

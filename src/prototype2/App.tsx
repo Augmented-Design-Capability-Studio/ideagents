@@ -59,6 +59,8 @@ export default function App() {
 
   const [plotX, setPlotX] = useState<string>("");
   const [plotY, setPlotY] = useState<string>("");
+  const [showPlot, setShowPlot] = useState(false);
+  const [editingConcepts, setEditingConcepts] = useState(false);
 
   const allAxes = [...engineeringAxes, ...qualitativeAxes];
 
@@ -94,6 +96,7 @@ export default function App() {
       const table = await estimateConcepts(apiKey, brief.trim(), readyConcepts, engineeringAxes);
       setEstimates(table);
       setEstimateStatus("done");
+      setEditingConcepts(false);
       if (engineeringAxes.length >= 2) {
         setPlotX(engineeringAxes[0].id);
         setPlotY(engineeringAxes[1].id);
@@ -104,8 +107,90 @@ export default function App() {
     }
   };
 
-  const addConcept = (concept: Concept) => {
+  const deleteConcept = (conceptId: string) => {
+    setConcepts((prev) => prev.filter((c) => c.id !== conceptId));
+  };
+
+  // Adds an LLM-suggested concept (from the plot) and gets it real estimates on
+  // EVERY engineering axis — not just the pair currently plotted — so it doesn't
+  // vanish when the designer switches which axes are shown. Existing concepts'
+  // estimates are sent along for context but never overwritten, only the new
+  // concept's own column is merged in.
+  const addSuggestedConcept = async (
+    concept: Concept,
+    hints: { axis: Axis; value: number }[]
+  ): Promise<{ ok: boolean; warning?: string }> => {
     setConcepts((prev) => [...prev, concept]);
+
+    for (const hint of hints) {
+      if (hint.axis.source === "qualitative") {
+        setQualitativeRatings((prev) => ({
+          ...prev,
+          [hint.axis.id]: { ...prev[hint.axis.id], [concept.id]: hint.value },
+        }));
+      }
+    }
+
+    if (engineeringAxes.length === 0) return { ok: true };
+    const apiKey = getApiKey();
+    if (!apiKey) return { ok: true };
+
+    try {
+      const readyConcepts = concepts.filter((c) => c.name.trim() && c.description.trim());
+      const table = await estimateConcepts(
+        apiKey,
+        brief.trim(),
+        [...readyConcepts, concept],
+        engineeringAxes
+      );
+      setEstimates((prev) => {
+        const next = { ...prev };
+        for (const axis of engineeringAxes) {
+          const cell = table[axis.id]?.[concept.id];
+          if (cell) next[axis.id] = { ...next[axis.id], [concept.id]: cell };
+        }
+        return next;
+      });
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        warning: `Added "${concept.name}", but couldn't estimate it on the other axes (${
+          err instanceof Error ? err.message : String(err)
+        }). Use Edit on step 2 and re-run Estimate to fill it in.`,
+      };
+    }
+  };
+
+  const resetFromEstimates = () => {
+    setEstimates({});
+    setEstimateStatus("idle");
+    setEstimateError(null);
+    setBoundaries([]);
+    setPlotX("");
+    setPlotY("");
+    setShowPlot(false);
+  };
+
+  const editConcepts = () => {
+    if (
+      !window.confirm(
+        'Editing the brief or concepts invalidates the current estimates — re-run "Estimate concepts on these axes" afterward. Axes, qualitative ratings, and boundaries are kept. Continue?'
+      )
+    ) {
+      return;
+    }
+    setEditingConcepts(true);
+    setEstimates({});
+    setEstimateStatus("idle");
+    setEstimateError(null);
+  };
+
+  const editAxes = () => {
+    if (!window.confirm("Editing the axes clears the estimates, boundaries, and trade-off plot. Continue?")) {
+      return;
+    }
+    resetFromEstimates();
   };
 
   const fillSample = () => {
@@ -136,8 +221,9 @@ export default function App() {
         onProposeAxes={() => void handleProposeAxes()}
         status={axesStatus}
         error={axesError}
-        locked={engineeringAxes.length > 0}
+        locked={engineeringAxes.length > 0 && !editingConcepts}
         onFillSample={fillSample}
+        onEdit={editConcepts}
       />
 
       <AxesEditor
@@ -147,6 +233,9 @@ export default function App() {
         status={estimateStatus}
         error={estimateError}
         locked={hasEstimates}
+        onEdit={editAxes}
+        concepts={concepts.filter((c) => c.name.trim())}
+        estimates={estimates}
       />
 
       {engineeringAxes.length > 0 && (
@@ -171,7 +260,13 @@ export default function App() {
         />
       )}
 
-      {hasEstimates && plotX && plotY && (
+      {hasEstimates && plotX && plotY && !showPlot && (
+        <div className="p2-row">
+          <button onClick={() => setShowPlot(true)}>Show trade-off plot</button>
+        </div>
+      )}
+
+      {hasEstimates && plotX && plotY && showPlot && (
         <TradeoffPlot
           brief={brief}
           apiKey={getApiKey()}
@@ -184,7 +279,8 @@ export default function App() {
           plotY={plotY}
           setPlotX={setPlotX}
           setPlotY={setPlotY}
-          onAddConcept={addConcept}
+          onAddSuggestedConcept={addSuggestedConcept}
+          onDeleteConcept={deleteConcept}
           onNeedAgent={() => setAgentOpen(true)}
         />
       )}

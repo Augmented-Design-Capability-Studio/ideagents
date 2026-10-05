@@ -1,0 +1,80 @@
+# Interface Spec: Expertise Challenge Tool
+
+## Purpose
+A web app that pushes designers toward more radical but reasonable ideas.
+The AI never proposes solutions. It only challenges the designer's own concept.
+
+## Layout (single page, three columns)
+- Left: Concept panel (input + revision history)
+- Center: Challenge card area (current challenge, dial, rating)
+- Right: "What's been done" panel
+
+## Features
+
+### 1. Concept input (left)
+- Text area for the initial concept, with optional sketch/image upload
+- "Submit concept" locks v1 and starts Round 1
+- The "What's been done" panel stays hidden until v1 is submitted (avoids fixation)
+
+### 2. "What's been done" panel (right)
+- Lists existing products, patents, and papers similar to the current concept
+- Each item: title, one-line abstract summary, source link
+- Text summaries only, no images (images increase fixation)
+- Header framing: "Already done — go beyond these"
+- Optional toggle: graph view (nodes = prior art, one node = current concept; distance = similarity)
+- Refreshes after each revision
+
+### 3. Expertise challenge card (center)
+- One challenge at a time, e.g., "Most solutions rely on X. What if X weren't available?"
+- Targets an assumption in the current concept or in the prior art
+- Never contains a proposed solution
+- Buttons: "Respond & revise", "Skip"
+
+### 4. Intensity dial (center, above card)
+- Levels 1–5 (label: "How far should we push?")
+- Auto-increments by 1 each round; the designer can lower it
+- Study mode: dial can be locked by the researcher
+
+### 5. "Why this is reasonable" note (under card)
+- Collapsed by default; expands to show 1–3 evidence items (short text + source link)
+- Explains why the challenged direction is plausible
+
+### 6. Revise and track (left)
+- After a challenge, the designer edits the concept and saves a new version (v2, v3, …)
+- History list: version number, timestamp, short diff or summary
+- "Distance from start" indicator (e.g., bar or number) per version
+
+### 7. Rate the challenge (under card)
+- Thumbs up / down + optional one-line reason
+- Required before the next challenge loads
+
+## Core loop
+1. Designer submits concept v1
+2. System loads prior art → shows panel
+3. System shows challenge at current dial level
+4. Designer rates challenge → revises concept (or skips)
+5. Dial increments → next round
+6. Designer can end the session at any time; final version is marked "submitted"
+
+## Data to log (every event, timestamped)
+- Concept versions (text + images)
+- Prior-art items shown
+- Challenges shown (text, dial level, evidence)
+- Ratings and reasons, skips
+- Distance scores per version
+- Session start/end, time per round
+
+## Researcher mode (hidden route, e.g., /admin)
+- Set condition, dial behavior (locked / fixed / escalating), participant ID
+- Export logs as JSON/CSV
+
+## Backend hooks (stub first, implement later)
+- getPriorArt(concept) → list of items
+- getChallenge(concept, priorArt, dialLevel) → {text, evidence[]}
+- getDistance(conceptV1, conceptVn) → number
+- Start with mocked responses so the UI can be built and tested independently
+
+## Out of scope (v1)
+- AI-generated solutions
+- Open chat box
+- Multi-user collaboration

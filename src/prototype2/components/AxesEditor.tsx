@@ -1,4 +1,4 @@
-import type { Axis } from "../types";
+import type { Axis, Concept, EstimateTable } from "../types";
 
 interface Props {
   axes: Axis[];
@@ -7,9 +7,22 @@ interface Props {
   status: "idle" | "loading" | "done" | "error";
   error: string | null;
   locked: boolean;
+  onEdit: () => void;
+  concepts: Concept[];
+  estimates: EstimateTable;
 }
 
-export function AxesEditor({ axes, setAxes, onEstimate, status, error, locked }: Props) {
+export function AxesEditor({
+  axes,
+  setAxes,
+  onEstimate,
+  status,
+  error,
+  locked,
+  onEdit,
+  concepts,
+  estimates,
+}: Props) {
   if (axes.length === 0) return null;
 
   const update = (id: string, patch: Partial<Axis>) => {
@@ -22,7 +35,10 @@ export function AxesEditor({ axes, setAxes, onEstimate, status, error, locked }:
 
   return (
     <section className="p2-section">
-      <h2>2. Engineering axes</h2>
+      <div className="section-header">
+        <h2>2. Engineering axes</h2>
+        {locked && <button onClick={onEdit}>Edit</button>}
+      </div>
       <p className="p2-hint">
         Proposed for this brief and these concepts. Confirm or edit before estimating.
       </p>
@@ -60,6 +76,46 @@ export function AxesEditor({ axes, setAxes, onEstimate, status, error, locked }:
         </div>
       )}
       {error && <p className="p2-error">{error}</p>}
+
+      {locked && (
+        <div className="p2-estimates">
+          <p className="p2-hint">
+            Relative scores, 1 (worst) to 10 (best on that axis) — not physical units. Range is
+            low-high with the best guess in parentheses; hover a cell for the model's
+            justification. "—" means this concept hasn't been estimated on that axis yet.
+          </p>
+          <div className="p2-estimates-scroll">
+            <table className="p2-estimates-table">
+              <thead>
+                <tr>
+                  <th>Axis</th>
+                  {concepts.map((c) => (
+                    <th key={c.id}>{c.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {axes.map((axis) => (
+                  <tr key={axis.id}>
+                    <td>
+                      {axis.name}
+                      <span className="p2-hint"> ({axis.direction === "higher-better" ? "higher better" : "lower better"})</span>
+                    </td>
+                    {concepts.map((c) => {
+                      const e = estimates[axis.id]?.[c.id];
+                      return (
+                        <td key={c.id} title={e?.justification}>
+                          {e ? `${e.low}-${e.high} (${e.likely})` : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

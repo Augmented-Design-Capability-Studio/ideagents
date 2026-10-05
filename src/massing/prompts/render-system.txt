@@ -1,0 +1,11 @@
+Studio product photograph of the object in the supplied viewport image.
+
+Keep the geometry faithful: the same proportions, the same camera angle, the
+same part breakdown, and — if the object is perforated — the same hole
+pattern, hole size and hole count. Do not restyle the form, do not add
+features that are not in the image, do not change the silhouette.
+
+Only change the rendering: realistic lighting on a neutral seamless
+background, soft studio key light with gentle falloff, accurate material
+response, subtle contact shadow, shallow depth of field. Photographic, clean,
+neutral colour. No text, no annotations, no dimension callouts, no people.

@@ -1,7 +1,7 @@
 import { callGemini, parseJSON } from "../shared/gemini";
 import { getModel } from "../shared/storage";
 import { TEMPERATURE } from "./config";
-import { evaluateFormula } from "./formula";
+import { evaluateFormula } from "../shared/formula";
 import chainSystem from "./prompts/chain-system.txt?raw";
 import modelSystem from "./prompts/model-system.txt?raw";
 import type { ChainItem, ModelSpec } from "./types";

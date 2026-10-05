@@ -1,0 +1,377 @@
+/* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
+
+.p5-app {
+  max-width: 1100px;
+}
+
+.p5-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.p5-columns-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.p5-columns-3 {
+  grid-template-columns: 1fr 1.2fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .p5-columns-2,
+  .p5-columns-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.p5-col {
+  min-width: 0;
+}
+
+.p5-section {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.p5-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.p5-section h3 {
+  font-size: 0.9rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.p5-placeholder {
+  color: #999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 8rem;
+}
+
+.p5-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.p5-field textarea,
+.p5-field input,
+.p5-field select {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.p5-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.p5-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.15rem 0 0.5rem;
+}
+
+.p5-error {
+  font-size: 0.85rem;
+  color: #b00020;
+  white-space: pre-wrap;
+}
+
+.p5-image-preview {
+  max-width: 10rem;
+  max-height: 10rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.p5-revise-box {
+  border: 1px solid #eee;
+  border-left: 3px solid #4a90e2;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+  margin-bottom: 0.75rem;
+}
+
+.p5-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.p5-history-item {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+
+.p5-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.p5-history-summary {
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+.p5-history-text {
+  margin: 0.3rem 0 0.5rem;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+}
+
+.p5-distance {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.p5-distance-bar {
+  flex: 1;
+  height: 0.4rem;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.p5-distance-fill {
+  height: 100%;
+  background: #4a90e2;
+}
+
+.p5-history-challenges {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.p5-history-challenges ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.p5-history-challenges li {
+  margin-bottom: 0.3rem;
+}
+
+.p5-ended {
+  font-size: 0.85rem;
+  color: #2e9e44;
+  font-weight: 600;
+}
+
+.p5-dial {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.p5-dial-caption {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.p5-dial-svg {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.p5-dial-seg-editable {
+  cursor: pointer;
+}
+
+.p5-dial-seg-editable:not(.p5-dial-seg-active):hover path {
+  fill-opacity: 0.5;
+}
+
+.p5-dial-seg:focus-visible {
+  outline: none;
+}
+
+.p5-dial-seg:focus-visible path {
+  stroke: #1a1a1a;
+  stroke-width: 2.5;
+}
+
+.p5-dial-num {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #777;
+  pointer-events: none;
+}
+
+.p5-dial-num-active {
+  fill: #fff;
+}
+
+.p5-dial-end {
+  font-size: 10px;
+  fill: #999;
+}
+
+.p5-dial-readout {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #444;
+  line-height: 1.35;
+}
+
+.p5-dial-next-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+  background: #eee;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.p5-level-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  margin-bottom: 0.45rem;
+}
+
+.p5-challenge-box {
+  border: 1px solid #eee;
+  border-left: 4px solid #c62828;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.p5-challenge-text {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.p5-reasonable {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.p5-reasonable ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.p5-rating {
+  border-top: 1px dashed #ddd;
+  padding-top: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.p5-rating input {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.p5-active {
+  background: #eef4ff;
+  border-color: #4a90e2;
+}
+
+.p5-prior-art-scroll {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.p5-prior-art-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.2rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.p5-show-more {
+  margin-top: 0.75rem;
+}
+
+.p5-prior-art-item {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.p5-prior-art-item p {
+  margin: 0.3rem 0;
+}
+
+.p5-graph {
+  width: 100%;
+  height: auto;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.p5-graph-label {
+  font-size: 9px;
+  fill: #444;
+}
+
+.p5-graph-center-label {
+  font-weight: 600;
+  fill: #2e9e44;
+}
+
+.p5-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.p5-admin .p5-section {
+  margin-bottom: 0;
+}
+
+.p5-export {
+  background: #f7f7f7;
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  max-height: 20rem;
+  overflow: auto;
+  white-space: pre-wrap;
+}

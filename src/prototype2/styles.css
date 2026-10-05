@@ -125,6 +125,35 @@
   border-radius: 4px;
 }
 
+.p2-estimates {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+
+.p2-estimates-scroll {
+  overflow-x: auto;
+}
+
+.p2-estimates-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.p2-estimates-table th,
+.p2-estimates-table td {
+  border: 1px solid #eee;
+  padding: 0.35rem 0.55rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.p2-estimates-table th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
 .p2-qual-axis {
   border-top: 1px solid #eee;
   padding-top: 0.5rem;
@@ -178,6 +207,28 @@
 .p2-plot-label {
   font-size: 11px;
   fill: #555;
+}
+
+.p2-plot-tick {
+  font-size: 9px;
+  fill: #888;
+}
+
+.p2-plot-catcher {
+  cursor: crosshair;
+}
+
+.p2-plot-point {
+  cursor: pointer;
+}
+
+.p2-plot-point:hover rect {
+  stroke-width: 2;
+}
+
+.p2-plot-point:hover circle {
+  stroke: #1a1a1a;
+  stroke-width: 1.5;
 }
 
 .p2-plot-point-label {

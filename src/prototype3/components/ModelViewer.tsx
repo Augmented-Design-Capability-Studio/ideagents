@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { evaluateFormula } from "../formula";
+import { evaluateFormula } from "../../shared/formula";
 import type { ModelSpec } from "../types";
 
 interface Props {

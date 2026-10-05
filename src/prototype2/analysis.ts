@@ -9,11 +9,17 @@ export interface Range {
   high: number;
 }
 
+export interface ValueRange extends Range {
+  // The model's (or designer's) single best-guess value — not necessarily
+  // the midpoint of low/high, so it's carried separately for display.
+  likely: number;
+}
+
 export interface PlotPoint {
   concept: Concept;
   // Raw (as entered/estimated), for display.
-  xRaw: Range;
-  yRaw: Range;
+  xRaw: ValueRange;
+  yRaw: ValueRange;
   // Goodness-normalized: higher is always better, regardless of axis
   // direction, so classification math doesn't need to special-case it.
   xGood: Range;
@@ -26,21 +32,21 @@ export function toRange(rating: number): Range {
   return { low: rating - QUALITATIVE_BAND, high: rating + QUALITATIVE_BAND };
 }
 
-// Looks up a concept's range/likely value on any axis, engineering or
+// Looks up a concept's range + likely value on any axis, engineering or
 // qualitative, so callers (boundaries, the plot) don't need to branch on
 // axis.source themselves.
-export function getRange(
+export function getValueRange(
   axis: Axis,
   conceptId: string,
   estimates: EstimateTable,
   qualitativeRatings: QualitativeRatings
-): Range | null {
+): ValueRange | null {
   if (axis.source === "engineering") {
     const e = estimates[axis.id]?.[conceptId];
-    return e ? { low: e.low, high: e.high } : null;
+    return e ? { low: e.low, likely: e.likely, high: e.high } : null;
   }
   const rating = qualitativeRatings[axis.id]?.[conceptId];
-  return rating != null ? toRange(rating) : null;
+  return rating != null ? { ...toRange(rating), likely: rating } : null;
 }
 
 export function getLikely(
@@ -81,8 +87,8 @@ export function buildPlotPoints(
   concepts: Concept[],
   xAxis: Axis,
   yAxis: Axis,
-  xRanges: Record<string, Range>,
-  yRanges: Record<string, Range>
+  xRanges: Record<string, ValueRange>,
+  yRanges: Record<string, ValueRange>
 ): PlotPoint[] {
   const points: PlotPoint[] = concepts.map((concept) => {
     const xRaw = xRanges[concept.id];

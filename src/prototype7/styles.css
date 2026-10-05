@@ -1,0 +1,361 @@
+/* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
+
+.p7-app {
+  max-width: 1400px;
+}
+
+.p7-section {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.p7-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.p7-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.15rem 0 0.5rem;
+}
+
+.p7-error {
+  font-size: 0.85rem;
+  color: #b00020;
+  white-space: pre-wrap;
+}
+
+.p7-concept {
+  width: 100%;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.p7-section select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* The configuration strip: panels side by side, scrolling horizontally. */
+.p7-strip {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  align-items: flex-start;
+  scroll-snap-type: x proximity;
+}
+
+.p7-strip-hint {
+  margin-top: 0;
+}
+
+.p7-panel {
+  flex: 0 0 24rem;
+  max-width: 24rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.85rem;
+  scroll-snap-align: start;
+}
+
+.p7-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.p7-name {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.p7-name:hover,
+.p7-name:focus {
+  border-color: #ccc;
+  background: #fff;
+}
+
+.p7-panel-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.p7-panel-actions button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.p7-rationale {
+  font-size: 0.8rem;
+  color: #444;
+  margin: 0 0 0.5rem;
+  min-height: 2.4em;
+}
+
+.p7-view-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.p7-view-controls button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.p7-link-toggle {
+  font-size: 0.75rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.p7-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.p7-slider-row {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.p7-slider-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.8rem;
+  text-align: right;
+}
+
+.p7-materials {
+  font-size: 0.78rem;
+  margin: 0.6rem 0;
+}
+
+.p7-material-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.3rem 0;
+}
+
+.p7-material-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p7-materials select {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  max-width: 9rem;
+}
+
+.p7-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex: none;
+}
+
+.p7-key-figures {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #eee;
+}
+
+.p7-figure {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+
+.p7-figure .p7-hint {
+  margin: 0;
+}
+
+.p7-warn-value {
+  color: #b00020;
+}
+
+.p7-warning {
+  font-size: 0.75rem;
+  color: #8a4b00;
+  background: #fff4e5;
+  border-radius: 4px;
+  padding: 0.3rem 0.45rem;
+  margin: 0.4rem 0 0;
+}
+
+/* A broken constraint is deliberately styled as *notable*, not as an error —
+   the whole point is that it's worth looking at, not that it's wrong. */
+.p7-panel-breaking {
+  border-color: #7b4fb5;
+  box-shadow: inset 0 2px 0 #7b4fb5;
+}
+
+.p7-provocation-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: #7b4fb5;
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  margin: 0 0 0.4rem;
+}
+
+.p7-constraints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+}
+
+.p7-constraint-chip {
+  font-size: 0.7rem;
+  border: 1px solid #ddd;
+  background: #f7f7f7;
+  color: #555;
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  cursor: help;
+}
+
+.p7-constraint-broken {
+  border-color: #7b4fb5;
+  background: #f3edfa;
+  color: #5b3690;
+  font-weight: 600;
+}
+
+.p7-breaking-note {
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: #f8f5fc;
+  border-left: 3px solid #7b4fb5;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+.p7-breaking-note .p7-hint {
+  margin: 0.25rem 0 0;
+}
+
+.p7-provocation-text {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: #40306b;
+}
+
+.p7-design-implications {
+  font-size: 0.78rem;
+  margin-top: 0.6rem;
+}
+
+.p7-design-implications ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.p7-design-implications li {
+  margin-bottom: 0.25rem;
+}
+
+.p7-table-divider td {
+  background: #f8f5fc;
+  font-size: 0.75rem;
+  color: #5b3690;
+  white-space: normal;
+}
+
+.p7-cell-breaking {
+  background: #f3edfa;
+  color: #5b3690;
+  font-weight: 600;
+}
+
+.p7-over-by {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.p7-table-scroll {
+  overflow-x: auto;
+}
+
+.p7-table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.p7-table th,
+.p7-table td {
+  border: 1px solid #eee;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.p7-table th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.p7-table td:first-child {
+  white-space: normal;
+}
+
+.p7-best {
+  background: #eaf6ec;
+  font-weight: 600;
+}
+
+.p7-cell-warn {
+  color: #b00020;
+}

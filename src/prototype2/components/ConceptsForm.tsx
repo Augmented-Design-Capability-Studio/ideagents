@@ -11,6 +11,7 @@ interface Props {
   error: string | null;
   locked: boolean;
   onFillSample: () => void;
+  onEdit: () => void;
 }
 
 let nextId = 0;
@@ -29,6 +30,7 @@ export function ConceptsForm({
   error,
   locked,
   onFillSample,
+  onEdit,
 }: Props) {
   const update = (id: string, patch: Partial<Concept>) => {
     setConcepts(concepts.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -52,6 +54,7 @@ export function ConceptsForm({
       <div className="section-header">
         <h2>1. Brief and concepts</h2>
         {!locked && <button onClick={onFillSample}>Fill sample inputs</button>}
+        {locked && <button onClick={onEdit}>Edit</button>}
       </div>
       <label className="p2-field">
         Design brief
