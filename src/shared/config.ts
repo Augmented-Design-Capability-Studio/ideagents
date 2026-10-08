@@ -20,3 +20,17 @@ export const GEMINI_MODEL_OPTIONS = [
 
 export const API_KEY_STORAGE_KEY = "gemini_api_key";
 export const MODEL_STORAGE_KEY = "gemini_model";
+
+// Image generation (Nano Banana) is a separate model family from the text
+// models above. Which of these a given key can reach varies, so it's
+// selectable in the Agent dialog.
+export const IMAGE_MODEL_OPTIONS = [
+  "gemini-3.1-flash-image",
+  "gemini-3.1-flash-lite-image",
+  "gemini-3-pro-image",
+  "gemini-2.5-flash-image",
+];
+
+export const DEFAULT_IMAGE_MODEL = IMAGE_MODEL_OPTIONS[0];
+
+export const IMAGE_MODEL_STORAGE_KEY = "gemini_image_model";

@@ -1,6 +1,6 @@
 import { callGemini, generateImage, parseJSON } from "../shared/gemini";
-import { getModel } from "../shared/storage";
-import { getImageModel, TEMPERATURE } from "./config";
+import { getImageModel, getModel } from "../shared/storage";
+import { TEMPERATURE } from "./config";
 import { MATERIALS, material } from "./materials";
 import sceneSystem from "./prompts/scene-system.txt?raw";
 import renderSystem from "./prompts/render-system.txt?raw";

@@ -1,23 +1,32 @@
-ADDITIONALLY: after the scene spec, propose exactly 4 contrasting
+ADDITIONALLY: after the scene spec, propose exactly 6 contrasting
 CONFIGURATIONS of that same scene. A configuration is only a different set of
 parameter values (and optionally different materials on some nodes) — the
 nodes, the structure, the implications and the constraints stay identical, so
 the configurations can be compared on the same metrics.
 
-Make them genuinely different strategies, not four nudges of one idea. Each
+Make them genuinely different strategies, not six nudges of one idea. Each
 should trade something away: the point is for the comparison to show a real
-tension, not four configurations where one simply wins.
+tension, not six configurations where one simply wins.
 
-THREE of them must satisfy every constraint ("intent": "feasible").
+TWO of them must satisfy every constraint ("intent": "feasible"). They are
+the baseline the provocations are read against.
 
-ONE of them must DELIBERATELY BREAK at least one constraint ("intent":
+FOUR of them must DELIBERATELY BREAK at least one constraint ("intent":
 "provocation"). This is not a mistake — an infeasible configuration shows the
 designer what sits just past the limit, and is often where the interesting
-thinking starts. Push it far enough that the violation is obvious, not
-marginal. For that configuration, list the constraint ids it breaks in
-"violates", and use "provocation" to say two things in one or two sentences:
-what breaking the constraint buys, and what would have to change for it to
-become legal (a different process, material, standard, or package change).
+thinking starts. Push each far enough that the violation is obvious, not
+marginal.
+
+Make the provocations provoke DIFFERENT things. Spread them across the
+constraints so every constraint is broken by at least one of them, and when
+there are fewer constraints than provocations, break the same constraint in a
+different direction or for a different reason, or break two at once. No two
+provocations should be the same move at a different intensity.
+
+For each provocation, list the constraint ids it breaks in "violates", and use
+"provocation" to say two things in one or two sentences: what breaking the
+constraint buys, and what would have to change for it to become legal (a
+different process, material, standard, or package change).
 
 For EVERY configuration, give 2-3 "designImplications": short qualitative
 consequences a designer would care about but that no formula captures — what

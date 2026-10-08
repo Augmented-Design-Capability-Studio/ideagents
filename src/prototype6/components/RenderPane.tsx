@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { getImageModel, IMAGE_MODELS, setImageModel } from "../../massing/config";
 import { MATERIALS, material } from "../../massing/materials";
 import type { RenderedImage } from "../../massing/types";
 
@@ -22,13 +20,6 @@ export function RenderPane({
   onRender,
   onClear,
 }: Props) {
-  const [imageModel, setImageModelState] = useState(getImageModel());
-
-  const changeModel = (m: string) => {
-    setImageModel(m);
-    setImageModelState(m);
-  };
-
   return (
     <section className="p6-section">
       <div className="section-header">
@@ -52,18 +43,6 @@ export function RenderPane({
         <button onClick={onRender} disabled={status === "loading"}>
           {status === "loading" ? "Rendering…" : "Render this view"}
         </button>
-      </div>
-      <div className="p6-row">
-        <label className="p6-hint">
-          Image model{" "}
-          <select value={imageModel} onChange={(e) => changeModel(e.target.value)}>
-            {IMAGE_MODELS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       {error && <p className="p6-error">{error}</p>}
 

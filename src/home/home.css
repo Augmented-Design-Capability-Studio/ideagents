@@ -63,3 +63,80 @@ body {
   font-size: 0.95rem;
   line-height: 1.4;
 }
+
+/* A group of variants on one premise: collapsible, open by default. */
+.prototype-group {
+  border: 1px solid #dfe2e6;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.prototype-group summary {
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.prototype-group summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Replaces the default marker with one that rotates when open. */
+.prototype-group summary::before {
+  content: "▸";
+  position: absolute;
+  margin-left: -1rem;
+  color: #9aa0a6;
+  transition: transform 0.15s ease;
+  display: inline-block;
+}
+
+.prototype-group details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.prototype-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.prototype-group summary h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #3872c2;
+}
+
+.prototype-group summary p {
+  margin: 0;
+  color: #444a52;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.prototype-group-count {
+  flex: none;
+  font-size: 0.75rem;
+  color: #6b7076;
+  background: #eef1f4;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.prototype-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0 1.5rem 1.25rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prototype-sublist .prototype-card {
+  background: #fff;
+}
+
+.prototype-sublist .prototype-card h2 {
+  font-size: 1rem;
+}

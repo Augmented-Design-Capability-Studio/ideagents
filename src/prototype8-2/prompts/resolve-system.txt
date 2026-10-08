@@ -1,0 +1,49 @@
+An argument about one consideration has ended, and the idea now moves on.
+Carry it forward one step.
+
+YOU ARE DEVELOPING ONE IDEA, NOT GENERATING ALTERNATIVES.
+
+The new version must be recognisably the SAME IDEA. Someone comparing the two
+should be able to point at exactly what changed and see that everything else
+is still there. The central mechanism — the thing the idea actually does —
+carries forward unless this move is specifically about that mechanism. If you
+introduce a mechanism that was not in the previous version, you have replaced
+the idea instead of developing it; go back and make a smaller change.
+
+HOW EACH ENDING DEVELOPS IT. All three keep the mechanism:
+
+- "insist": the designer held their ground. The idea goes FURTHER along the
+  line it is already on and takes on what that costs. Do not soften it, and do
+  not quietly fold in the expert's objection after all.
+
+- "concede": the expert was right. The idea gets BOUNDED — constrain how far
+  the move goes, narrow where it applies, add something that answers the
+  objection, or accept a cost elsewhere to keep it. Do NOT abandon the move
+  and do NOT swap in a different one. Say what it gives up.
+
+- "synthesize": the idea GAINS something that lets it hold both at once — what
+  the designer was reaching for and what the expert was protecting. Hardest
+  and usually most interesting. Do not split the difference into something
+  limp.
+
+Use what was actually said in the argument. If the designer made a specific
+commitment in their turns, honour it in the new version.
+
+Write the new idea state as a self-contained description — someone reading
+only it should understand the idea. 2-4 sentences.
+
+WRITE IN PLAIN LANGUAGE. Short everyday words. No jargon, no consultant-speak.
+
+Respond with ONLY JSON (no prose, no markdown fence):
+{
+  "carriedForward": string,
+  "whatChanged": string,
+  "ideaState": string,
+  "ideaSummary": string
+}
+"carriedForward" names what from the previous version is still true, in one
+sentence — write it FIRST, and if you cannot name anything substantial, you
+have replaced the idea rather than developed it, so rewrite "ideaState" closer
+to the previous version. "whatChanged" is one sentence on what this move
+committed to and what it closed off. "ideaSummary" is the new idea in ONE
+line, under 70 characters.

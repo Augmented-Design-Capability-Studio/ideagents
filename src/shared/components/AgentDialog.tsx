@@ -1,11 +1,18 @@
 import { useState } from "react";
-import { DEFAULT_GEMINI_MODEL, GEMINI_MODEL_OPTIONS } from "../config";
+import {
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_IMAGE_MODEL,
+  GEMINI_MODEL_OPTIONS,
+  IMAGE_MODEL_OPTIONS,
+} from "../config";
 import type { ConnectionState } from "../connection";
 import {
   clearApiKey,
   getApiKey,
+  getImageModel,
   getModel,
   setApiKey,
+  setImageModel,
   setModel,
 } from "../storage";
 
@@ -32,6 +39,7 @@ export function AgentDialog({ connection, onConnectionChanged, onClose }: Props)
   const [draft, setDraft] = useState("");
   const [savedKey, setSavedKey] = useState(getApiKey());
   const [model, setModelState] = useState(getModel());
+  const [imageModel, setImageModelState] = useState(getImageModel());
 
   const save = () => {
     if (!draft.trim()) return;
@@ -50,6 +58,11 @@ export function AgentDialog({ connection, onConnectionChanged, onClose }: Props)
   const changeModel = (m: string) => {
     setModel(m);
     setModelState(m);
+  };
+
+  const changeImageModel = (m: string) => {
+    setImageModel(m);
+    setImageModelState(m);
   };
 
   return (
@@ -74,6 +87,16 @@ export function AgentDialog({ connection, onConnectionChanged, onClose }: Props)
             {GEMINI_MODEL_OPTIONS.map((m) => (
               <option key={m} value={m}>
                 {m === DEFAULT_GEMINI_MODEL ? `${m} (default)` : m}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="dialog-field">
+          Image model
+          <select value={imageModel} onChange={(e) => changeImageModel(e.target.value)}>
+            {IMAGE_MODEL_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m === DEFAULT_IMAGE_MODEL ? `${m} (default)` : m}
               </option>
             ))}
           </select>

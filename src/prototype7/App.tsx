@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { AgentButton } from "../shared/components/AgentButton";
 import { AgentDialog } from "../shared/components/AgentDialog";
 import { useGeminiConnection } from "../shared/hooks/useGeminiConnection";
@@ -18,6 +18,7 @@ import { generateConfiguredScene } from "./api";
 import { ComparisonTable } from "./components/ComparisonTable";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { MAX_CONFIGS, SAMPLES } from "./config";
+import { useScrollOverflow } from "./layout";
 import type { ComparisonRow, Configuration } from "./types";
 
 interface BuiltConfig {
@@ -153,6 +154,16 @@ export default function App() {
     });
   }, [spec, configs, built]);
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  const overflow = useScrollOverflow(gridRef, [configs.length, spec]);
+  const provocationCount = configs.filter((c) => c.intent === "provocation").length;
+  const allExpanded = configs.length > 0 && configs.every((c) => c.expanded);
+
+  const scrollGrid = (direction: 1 | -1) => {
+    const el = gridRef.current;
+    if (el) el.scrollBy({ top: direction * el.clientHeight * 0.8, behavior: "smooth" });
+  };
+
   const handleGenerate = async () => {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -281,43 +292,81 @@ export default function App() {
 
       {spec && configs.length > 0 && (
         <>
-          <div className="p7-strip">
-            {configs.map((config) => {
-              const b = built[config.id];
-              if (!b) return null;
-              return (
-                <ConfigPanel
-                  key={config.id}
-                  spec={spec}
-                  config={config}
-                  group={b.group}
-                  stats={b.stats}
-                  rows={b.rows}
-                  constraints={b.constraints}
-                  frameKey={frameKeys[config.id] ?? 0}
-                  camera={config.linked && driverId !== config.id ? linkedCamera : null}
-                  onCameraChange={(cam) => handleCameraChange(config.id, cam)}
-                  onRename={(name) => updateConfig(config.id, { name })}
-                  onChangeValue={(paramId, v) =>
-                    updateConfig(config.id, { values: { ...config.values, [paramId]: v } })
-                  }
-                  onChangeMaterial={(nodeId, materialId) =>
-                    updateConfig(config.id, {
-                      materials: { ...config.materials, [nodeId]: materialId },
-                    })
-                  }
-                  onToggleInterior={() => toggleInterior(config.id)}
-                  onToggleLinked={(linked) => toggleLinked(config.id, linked)}
-                  onDuplicate={() => duplicateConfig(config.id)}
-                  onRemove={() => setConfigs((prev) => prev.filter((c) => c.id !== config.id))}
-                  canRemove={configs.length > 1}
-                />
-              );
-            })}
+          <div className="p7-grid-bar">
+            <h2>Configurations</h2>
+            <span className="p7-hint">
+              {configs.length} configurations · {provocationCount} provocations ·{" "}
+              {MAX_CONFIGS - configs.length} free slots
+            </span>
+            <button
+              className="p7-expand-all"
+              onClick={() => setConfigs((prev) => prev.map((c) => ({ ...c, expanded: !allExpanded })))}
+            >
+              {allExpanded ? "Collapse all" : "Expand all"}
+            </button>
           </div>
-          <p className="p7-hint p7-strip-hint">
-            Scroll sideways for more configurations · {configs.length}/{MAX_CONFIGS} panels
-          </p>
+
+          <div className="p7-grid-wrap">
+            <div className="p7-grid" ref={gridRef}>
+              {configs.map((config) => {
+                const b = built[config.id];
+                if (!b) return null;
+                return (
+                  <ConfigPanel
+                    key={config.id}
+                    spec={spec}
+                    config={config}
+                    group={b.group}
+                    stats={b.stats}
+                    rows={b.rows}
+                    constraints={b.constraints}
+                    frameKey={frameKeys[config.id] ?? 0}
+                    camera={config.linked && driverId !== config.id ? linkedCamera : null}
+                    onCameraChange={(cam) => handleCameraChange(config.id, cam)}
+                    onRename={(name) => updateConfig(config.id, { name })}
+                    onChangeValue={(paramId, v) =>
+                      updateConfig(config.id, { values: { ...config.values, [paramId]: v } })
+                    }
+                    onChangeMaterial={(nodeId, materialId) =>
+                      updateConfig(config.id, {
+                        materials: { ...config.materials, [nodeId]: materialId },
+                      })
+                    }
+                    onToggleInterior={() => toggleInterior(config.id)}
+                    onToggleLinked={(linked) => toggleLinked(config.id, linked)}
+                    onToggleExpanded={() =>
+                      updateConfig(config.id, { expanded: !config.expanded })
+                    }
+                    onDuplicate={() => duplicateConfig(config.id)}
+                    onRemove={() => setConfigs((prev) => prev.filter((c) => c.id !== config.id))}
+                    canRemove={configs.length > 1}
+                  />
+                );
+              })}
+            </div>
+
+            <div
+              className={`p7-fade p7-fade-top ${overflow.canScrollUp ? "p7-fade-on" : ""}`}
+              aria-hidden
+            />
+            <div
+              className={`p7-fade p7-fade-bottom ${overflow.canScrollDown ? "p7-fade-on" : ""}`}
+              aria-hidden
+            />
+            {overflow.canScrollUp && (
+              <button className="p7-scroll-pill p7-scroll-pill-top" onClick={() => scrollGrid(-1)}>
+                ↑ Back up
+              </button>
+            )}
+            {overflow.canScrollDown && (
+              <button className="p7-scroll-pill p7-scroll-pill-bottom" onClick={() => scrollGrid(1)}>
+                ↓{" "}
+                {overflow.hiddenBelow > 0
+                  ? `${overflow.hiddenBelow} more configuration${overflow.hiddenBelow === 1 ? "" : "s"} below`
+                  : "Scroll for more"}
+              </button>
+            )}
+          </div>
 
           <ComparisonTable
             rows={comparisonRows}

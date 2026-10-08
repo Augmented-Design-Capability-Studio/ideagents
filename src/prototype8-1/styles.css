@@ -1,0 +1,798 @@
+/* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
+
+.p8-app {
+  max-width: 1500px;
+}
+
+.p8-section {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.p8-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.6rem;
+}
+
+.p8-field textarea,
+.p8-note {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  width: 100%;
+}
+
+.p8-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+}
+
+.p8-hint {
+  font-size: 0.78rem;
+  color: #666;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.p8-error {
+  font-size: 0.85rem;
+  color: #b00020;
+  white-space: pre-wrap;
+}
+
+.p8-section select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.p8-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .p8-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.p8-control-group {
+  min-width: 0;
+}
+
+.p8-controls-header {
+  grid-column: 1 / -1;
+  align-items: baseline;
+}
+
+.p8-controls-header .p8-hint {
+  margin: 0;
+  text-align: right;
+}
+
+.p8-control-wide {
+  grid-column: 1 / -1;
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+}
+
+.p8-debaters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.p8-debaters select {
+  flex: 1;
+  max-width: 24rem;
+}
+
+.p8-radicality {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.p8-radicality input {
+  width: 100%;
+}
+
+/* Tree on the left, property panel on the right, both exactly the same
+   height so the board reads as one surface. */
+.p8-board {
+  --p8-board-height: 70vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .p8-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+.p8-tree-wrap {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem 0.85rem 0.5rem;
+  height: var(--p8-board-height);
+  min-height: 30rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Both board headers are the same height so the two columns line up. The
+   tree header carries buttons, so that sets the bar. */
+.p8-header-row,
+.p8-panel-header {
+  min-height: 2.1rem;
+  align-items: center;
+}
+
+.p8-tree-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.p8-tree-actions .p8-hint {
+  margin: 0;
+}
+
+.p8-tree-actions button {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+}
+
+/* Separates the action (auto-play) from the view controls beside it. */
+.p8-action-divider {
+  width: 1px;
+  height: 1rem;
+  background: #ddd;
+  margin: 0 0.15rem;
+}
+
+.p8-zoom-value {
+  font-size: 0.72rem;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6rem;
+  text-align: center;
+}
+
+/* The canvas fills whatever the wrapper has left and clips — the tree is
+   reached by panning, not by scrolling. */
+.p8-canvas {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background: #fcfcfb;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.p8-canvas:active {
+  cursor: grabbing;
+}
+
+.p8-canvas-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.p8-canvas-footer .p8-hint {
+  margin: 0;
+}
+
+.p8-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  color: #555;
+  flex-wrap: wrap;
+}
+
+.p8-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+/* A line, not a dot — it stands for an edge. */
+.p8-legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.p8-tree {
+  display: block;
+}
+
+/* Nodes are both clickable and draggable; grab reads as "you can move this",
+   and the icons inside override back to pointer. */
+.p8-node {
+  cursor: grab;
+  /* Fades in on mount, so a node created by "+" announces itself. Only opacity
+     is animated — the group carries a translate() transform attribute, and a
+     CSS transform here would clobber its position. */
+  animation: p8-node-enter 0.3s ease-out;
+}
+
+@keyframes p8-node-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+.p8-node:active {
+  cursor: grabbing;
+}
+
+.p8-node-icon,
+.p8-node-add {
+  cursor: pointer;
+}
+
+.p8-node-box {
+  fill: #fff;
+}
+
+.p8-node-selected .p8-node-box {
+  fill: #fdfcff;
+}
+
+/* A black border alone was too easy to lose on a busy canvas, so the selected
+   node also gets a halo, a lift, and a one-shot pop to catch the eye when
+   selection moves. The halo only exists while selected, so it remounts — and
+   therefore replays its animation — on every change. */
+.p8-node-halo {
+  fill: #1a1a1a;
+  fill-opacity: 0.05;
+  stroke: #1a1a1a;
+  stroke-opacity: 0.32;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: p8-select-pop 0.32s ease-out;
+  pointer-events: none;
+}
+
+@keyframes p8-select-pop {
+  from {
+    transform: scale(0.96);
+    stroke-opacity: 0;
+    fill-opacity: 0;
+  }
+}
+
+.p8-node-selected .p8-node-title {
+  fill: #000;
+}
+
+/* An abandoned branch is kept, not deleted — dimmed but still clickable and
+   still developable. */
+.p8-node-abandoned {
+  opacity: 0.5;
+}
+
+.p8-node-section {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: #aaa;
+}
+
+.p8-node-idea {
+  font-size: 10.5px;
+  fill: #555;
+}
+
+.p8-node-divider {
+  stroke: #eee;
+  stroke-width: 1;
+}
+
+.p8-node-thumb {
+  border-radius: 3px;
+}
+
+/* The sketch slot is reserved while the drawing is still coming back, so the
+   node doesn't change height — and reflow the whole tree — when it lands. */
+.p8-thumb-placeholder {
+  fill: #fafafa;
+  stroke: #e2e2e2;
+  stroke-dasharray: 4 3;
+}
+
+.p8-thumb-placeholder-label {
+  font-size: 9px;
+  fill: #999;
+}
+
+.p8-checkbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.p8-checkbox .p8-hint {
+  grid-column: 2;
+  margin: 0;
+}
+
+/* --- Waiting states ------------------------------------------------------ */
+
+@keyframes p8-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes p8-pulse {
+  0%,
+  100% {
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.2;
+  }
+}
+
+@keyframes p8-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+.p8-spinner {
+  stroke: #4a90e2;
+  /* Without fill-box the rotation would pivot around the SVG origin, not the
+     spinner, and fly off across the canvas. */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: p8-spin 0.9s linear infinite;
+}
+
+.p8-node-busy .p8-node-box {
+  animation: p8-pulse 1.3s ease-in-out infinite;
+}
+
+/* Indeterminate bar: always in the layout so the board doesn't jump when a
+   call starts. */
+.p8-progress {
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: transparent;
+}
+
+.p8-progress-on {
+  background: #ececec;
+}
+
+.p8-progress span {
+  display: block;
+  height: 100%;
+  width: 28%;
+  border-radius: 2px;
+  background: #4a90e2;
+  opacity: 0;
+}
+
+.p8-progress-on span {
+  opacity: 1;
+  animation: p8-slide 1.2s ease-in-out infinite;
+}
+
+.p8-dot-spinner {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid #cfe0f5;
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: p8-spin 0.8s linear infinite;
+  flex: none;
+}
+
+.p8-waiting {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #555;
+  margin: 0.3rem 0;
+}
+
+.p8-sketch-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #777;
+  background: #fafafa;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+  height: 6.5rem;
+  margin-top: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p8-spinner,
+  .p8-node-busy .p8-node-box,
+  .p8-progress-on span,
+  .p8-dot-spinner,
+  .p8-node-halo,
+  .p8-node {
+    animation: none;
+  }
+
+  .p8-add-circle,
+  .p8-icon-circle {
+    transition: none;
+  }
+}
+
+.p8-sketch-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.p8-sketch-head h3 {
+  margin-bottom: 0.2rem;
+}
+
+.p8-sketch-head button {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.p8-sketch {
+  width: 100%;
+  border-radius: 4px;
+  border: 1px solid #e4e4e4;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.p8-node-title {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #1a1a1a;
+}
+
+.p8-node-kind {
+  font-size: 9.5px;
+  fill: #888;
+}
+
+.p8-add-circle,
+.p8-icon-circle {
+  fill: #fff;
+  stroke: #bbb;
+  /* Safe to transform: these circles carry no transform attribute of their
+     own, unlike the groups around them. */
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    fill 0.12s ease,
+    stroke 0.12s ease,
+    transform 0.09s ease;
+}
+
+.p8-node-add:hover .p8-add-circle,
+.p8-node-icon:hover .p8-icon-circle {
+  fill: #eef4ff;
+  stroke: #4a90e2;
+}
+
+/* Press feedback: the button visibly takes the click, before any network
+   round-trip has had a chance to show a spinner. */
+.p8-node-add:active .p8-add-circle,
+.p8-node-icon:active .p8-icon-circle {
+  transform: scale(0.85);
+  fill: #d8e6fa;
+}
+
+.p8-add-plus,
+.p8-icon-glyph {
+  transition: fill 0.12s ease, stroke 0.12s ease;
+}
+
+.p8-node-icon {
+  cursor: pointer;
+}
+
+.p8-icon-glyph {
+  stroke: #777;
+  fill: #777;
+  pointer-events: none;
+}
+
+.p8-node-icon:hover .p8-icon-glyph {
+  stroke: #2a5caa;
+  fill: #2a5caa;
+}
+
+.p8-add-plus {
+  font-size: 14px;
+  fill: #555;
+  pointer-events: none;
+}
+
+/* Fill comes from the outcome colour, set per element. */
+.p8-port {
+  stroke-width: 1.5;
+}
+
+.p8-port-open {
+  stroke-opacity: 0.55;
+}
+
+.p8-edge-label {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Property panel — same height as the canvas, scrolls internally. */
+.p8-panel {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+  height: var(--p8-board-height);
+  min-height: 30rem;
+  overflow-y: auto;
+}
+
+.p8-panel-header {
+  position: sticky;
+  top: -0.75rem;
+  background: #fff;
+  padding: 0.25rem 0 0.5rem;
+  margin: -0.25rem 0 0.5rem;
+  border-bottom: 1px solid #eee;
+  z-index: 1;
+}
+
+.p8-panel-header .p8-hint {
+  margin: 0;
+}
+
+.p8-node-heading {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.p8-panel h3 {
+  font-size: 0.82rem;
+  margin: 1rem 0 0.35rem;
+  color: #444;
+}
+
+.p8-kind-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #eef4ff;
+  color: #2a5caa;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  margin: 0 0 0.4rem;
+}
+
+.p8-consideration {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+}
+
+.p8-idea-state {
+  font-size: 0.82rem;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+  margin: 0;
+}
+
+.p8-carried,
+.p8-what-changed {
+  font-size: 0.78rem;
+  color: #444;
+  margin: 0.4rem 0 0;
+  padding-left: 0.6rem;
+  border-left: 3px solid #e4e0ea;
+}
+
+/* Continuity reads green, change reads violet — a branch that has quietly
+   become a different idea shows up as a thin or empty green line. */
+.p8-carried {
+  border-left-color: #bfe0c6;
+}
+
+.p8-what-changed {
+  border-left-color: #d9cfe8;
+}
+
+.p8-side {
+  border: 1px solid #eee;
+  border-left: 3px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.p8-side-pro {
+  border-left-color: #2e9e44;
+}
+
+.p8-side-con {
+  border-left-color: #c62828;
+}
+
+.p8-side-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.p8-side-head .p8-hint {
+  margin: 0;
+}
+
+.p8-claim {
+  font-weight: 600;
+  margin: 0.25rem 0;
+}
+
+.p8-side-detail {
+  font-size: 0.8rem;
+}
+
+.p8-side-detail summary {
+  cursor: pointer;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.p8-argument {
+  margin: 0.35rem 0 0.25rem;
+}
+
+.p8-falsifier {
+  font-size: 0.75rem;
+  color: #555;
+  margin: 0.3rem 0 0.15rem;
+}
+
+/* Three plain choices rather than a scale — the in-between positions never
+   meant anything, since every reader of the verdict bucketed it into these. */
+.p8-outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.p8-outcome {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.p8-outcome-current {
+  border-color: #4a90e2;
+  background: #f7faff;
+}
+
+.p8-outcome-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+
+.p8-outcome-body {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: space-between;
+}
+
+.p8-outcome-body .p8-hint {
+  margin: 0;
+}
+
+.p8-live-tag,
+.p8-suggested-tag {
+  font-size: 0.62rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+
+.p8-live-tag {
+  background: #4a90e2;
+  color: #fff;
+}
+
+.p8-suggested-tag {
+  background: #eee;
+  color: #555;
+}
+
+/* Pushed to the right of the outcome's head row. */
+.p8-outcome .p8-winner-toggle {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  color: #666;
+}
+
+.p8-outcome .p8-winner-on {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: #fff;
+  font-weight: 600;
+}
+
+.p8-outcome .p8-winner-on:hover:not(:disabled) {
+  background: #3a7bc8;
+}
+
+.p8-suggestion {
+  font-size: 0.78rem;
+  color: #333;
+  background: #f5f5f5;
+  border-left: 3px solid #bbb;
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+  margin: 0.5rem 0;
+}
+
+.p8-outcome button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}

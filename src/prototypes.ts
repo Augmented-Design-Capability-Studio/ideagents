@@ -2,7 +2,11 @@ export interface PrototypeInfo {
   id: string;
   title: string;
   description: string;
-  path: string;
+  // A group has no path of its own — it collapses open to reveal its variants.
+  path?: string;
+  // Variants that explore the same idea in different ways. The home page shows
+  // a group as a collapsible section rather than a link.
+  children?: PrototypeInfo[];
 }
 
 export const PROTOTYPES: PrototypeInfo[] = [
@@ -52,7 +56,29 @@ export const PROTOTYPES: PrototypeInfo[] = [
     id: "prototype7",
     title: "Prototype 7: Configuration Comparison",
     description:
-      "The massing model as a comparison tool: one concept becomes several contrasting configurations side by side in a horizontally scrolling strip, each independently adjustable, with linked cameras and a table comparing them on the same engineering metrics.",
+      "The massing model as a comparison tool: one concept becomes a responsive grid of contrasting configurations — two feasible baselines and several provocations that each deliberately break a different constraint — each independently adjustable, with linked cameras and a table comparing them on the same engineering metrics.",
     path: "/prototype7/",
+  },
+  {
+    id: "prototype8",
+    title: "Prototype 8: Idea Development Game",
+    description:
+      "Developing an idea as a game played against two arguing agents, with you as the judge. Several variants of the same premise.",
+    children: [
+      {
+        id: "prototype8-1",
+        title: "8.1 — Extensive-form tree",
+        description:
+          "Each node is a consideration point two agents argue over; you develop the outcomes you want and mark one as the winner (the debate suggests one). Every branch is kept, so changing the winner is free and the road not taken stays visible.",
+        path: "/prototype8-1/",
+      },
+      {
+        id: "prototype8-2",
+        title: "8.2 — Argue for your idea",
+        description:
+          "You're in the argument instead of judging it. Pick who's in the room; each expert raises a point from their own discipline and you answer — by picking from suggested replies, writing your own, or letting a proxy trained on your previous turns answer for you. End each argument by insisting, synthesizing, or conceding.",
+        path: "/prototype8-2/",
+      },
+    ],
   },
 ];

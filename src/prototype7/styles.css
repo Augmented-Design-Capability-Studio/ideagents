@@ -1,7 +1,7 @@
 /* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
 
 .p7-app {
-  max-width: 1400px;
+  max-width: 1600px;
 }
 
 .p7-section {
@@ -52,27 +52,140 @@
   background: #fff;
 }
 
-/* The configuration strip: panels side by side, scrolling horizontally. */
-.p7-strip {
+/* The configuration grid: as many columns as fit, packed masonry-style (each
+   card spans as many 4px rows as its height needs — see layout.ts), and
+   overflowing vertically inside its own scroll box so the comparison table
+   stays one scroll away. */
+.p7-grid-bar {
   display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.75rem;
-  align-items: flex-start;
-  scroll-snap-type: x proximity;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.p7-strip-hint {
-  margin-top: 0;
+.p7-grid-bar .p7-hint {
+  margin: 0;
+}
+
+.p7-expand-all {
+  margin-left: auto;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.p7-grid-wrap {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.p7-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  grid-auto-rows: 4px;
+  column-gap: 1rem;
+  row-gap: 0;
+  align-items: start;
+  max-height: 85vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.25rem 0.5rem 0 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+/* Edge fades say "there's more this way" without taking any space. */
+.p7-fade {
+  position: absolute;
+  left: 0;
+  right: 0.5rem;
+  height: 3.5rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.p7-fade-on {
+  opacity: 1;
+}
+
+.p7-fade-top {
+  top: 0;
+  background: linear-gradient(#fff, rgba(255, 255, 255, 0));
+}
+
+.p7-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(rgba(255, 255, 255, 0), #fff);
+}
+
+.p7-scroll-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border-color: #bbb;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.p7-scroll-pill-top {
+  top: 0.5rem;
+}
+
+.p7-scroll-pill-bottom {
+  bottom: 0.6rem;
+  animation: p7-nudge 1.6s ease-in-out 2;
+}
+
+@keyframes p7-nudge {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p7-scroll-pill-bottom {
+    animation: none;
+  }
 }
 
 .p7-panel {
-  flex: 0 0 24rem;
-  max-width: 24rem;
+  min-width: 0;
   border: 1px solid #ddd;
   border-radius: 6px;
-  padding: 0.85rem;
-  scroll-snap-align: start;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+/* Collapsed cards clamp the rationale so cards stay close in height. */
+.p7-panel:not(.p7-panel-expanded) .p7-rationale {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.p7-expand {
+  display: block;
+  width: 100%;
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+  color: #444;
+  background: #fafafa;
+}
+
+.p7-panel-details {
+  margin-top: 0.4rem;
 }
 
 .p7-panel-head {
@@ -115,7 +228,6 @@
   font-size: 0.8rem;
   color: #444;
   margin: 0 0 0.5rem;
-  min-height: 2.4em;
 }
 
 .p7-view-controls {
@@ -347,8 +459,18 @@
   font-weight: 600;
 }
 
-.p7-table td:first-child {
+.p7-table tr:not(.p7-table-divider) td:first-child,
+.p7-table th:first-child {
   white-space: normal;
+  min-width: 10rem;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.p7-table th:first-child {
+  background: #fafafa;
 }
 
 .p7-best {
@@ -358,4 +480,41 @@
 
 .p7-cell-warn {
   color: #b00020;
+}
+
+/* Narrow screens: a nested scroll box fights the page scroll and the orbit
+   controls on touch, so the grid just flows with the page. */
+@media (max-width: 720px) {
+  .p7-app {
+    padding: 1rem 0.75rem 3rem;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .p7-section {
+    padding: 0.75rem;
+  }
+
+  .p7-grid {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+    border: none;
+  }
+
+  .p7-panel-head {
+    flex-wrap: wrap;
+  }
+
+  .p7-slider-row {
+    grid-template-columns: 1fr 1fr auto;
+  }
+
+  .p7-table tr:not(.p7-table-divider) td:first-child,
+  .p7-table th:first-child {
+    min-width: 7rem;
+  }
 }

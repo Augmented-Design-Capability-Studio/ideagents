@@ -9,6 +9,9 @@ export interface Configuration {
   // View state travels with the configuration so duplicating or removing a
   // panel carries it along.
   interior: boolean;
+  // Collapsed cards show only the view and the key figures, so the whole set
+  // fits on screen; sliders and notes open on demand.
+  expanded: boolean;
   // Whether this panel is part of the linked group — linked panels share a
   // camera and switch between inside/outside together, so they stay
   // comparable. Unlink one to inspect it on its own.

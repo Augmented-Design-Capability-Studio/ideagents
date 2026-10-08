@@ -1,6 +1,8 @@
 import {
   API_KEY_STORAGE_KEY,
   DEFAULT_GEMINI_MODEL,
+  DEFAULT_IMAGE_MODEL,
+  IMAGE_MODEL_STORAGE_KEY,
   MODEL_STORAGE_KEY,
 } from "./config";
 
@@ -22,4 +24,12 @@ export function getModel(): string {
 
 export function setModel(model: string): void {
   localStorage.setItem(MODEL_STORAGE_KEY, model);
+}
+
+export function getImageModel(): string {
+  return localStorage.getItem(IMAGE_MODEL_STORAGE_KEY) ?? DEFAULT_IMAGE_MODEL;
+}
+
+export function setImageModel(model: string): void {
+  localStorage.setItem(IMAGE_MODEL_STORAGE_KEY, model);
 }

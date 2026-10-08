@@ -30,9 +30,20 @@ Each prototype is a self-contained Vite entry point:
   & Implications](prototype6/README.md).
 - `prototype7/index.html` + `src/prototype7/` — [Prototype 7: Configuration
   Comparison](prototype7/README.md).
+- `prototype8-1/index.html` + `src/prototype8-1/` — [Prototype 8.1: Idea
+  Development Game](prototype8-1/README.md) — you judge, two agents argue.
+- `prototype8-2/index.html` + `src/prototype8-2/` — [Prototype 8.2: Argue For
+  Your Idea](prototype8-2/README.md) — you argue, a room of experts pushes
+  back.
+
+Prototype 8 is a *family*: the home page shows it as a collapsible group of
+variants on one premise, so further variants slot in beside these rather than
+becoming prototypes 9 and 10.
 
 Prototypes are registered in `src/prototypes.ts` (title, description, path)
-so they show up on the home page.
+so they show up on the home page. An entry with `children` and no `path` of
+its own renders as a collapsible group instead of a link — that's how a
+prototype grows variants without consuming the next whole number.
 
 ## Shared module
 

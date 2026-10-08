@@ -1,0 +1,6 @@
+Loose concept sketch of the idea described below.
+
+Design-studio marker sketch: confident line work, light shading, a neutral
+background, drawn as a designer would sketch it to think with — not a
+photoreal render. Show the thing itself clearly enough to read what it is and
+how it works. No text, no labels, no dimension callouts, no logos, no people.

@@ -1,9 +1,8 @@
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 // Each configuration panel runs its own WebGL context; browsers cap those at
-// roughly a dozen, and the comparison table stops being readable long before
-// that anyway.
-export const MAX_CONFIGS = 5;
+// roughly a dozen (Chrome drops the oldest past 16), so stay well under that.
+export const MAX_CONFIGS = 8;
 
 export const CABIN_CONCEPT =
   "The rear cabin of a vehicle, redesigned to feel less claustrophobic without changing the roofline — larger side glazing, slimmer front seat backs, and a glazed panel above the rear bench.";

@@ -1,9 +1,11 @@
 # Prototype 7: Configuration Comparison
 
 An iteration on prototype 6. Instead of one massing model, a concept becomes
-several contrasting **configurations** side by side in a horizontally
-scrolling strip — each independently adjustable — plus a table that compares
-them on the same engineering metrics.
+several contrasting **configurations** in a responsive, masonry-packed grid
+that scrolls vertically (with edge fades and a "N more below" button so the
+overflow is visible). Cards start collapsed to the 3D view and key figures;
+each expands to its sliders, materials and notes. Below the grid, a table
+compares them on the same engineering metrics.
 
 Built around the vehicle rear cabin sample, which is the case that most wants
 this: "less claustrophobic without changing the roofline" has several
@@ -22,7 +24,7 @@ paste a Gemini API key. The cabin concept is pre-filled.
 
 ## What a configuration is
 
-One Gemini call returns a single scene spec **plus three contrasting
+One Gemini call returns a single scene spec **plus six contrasting
 configurations of it**. A configuration only changes parameter values and
 optionally some materials — the nodes, the structure and the implications are
 identical across all of them. That constraint is what makes the comparison
@@ -68,10 +70,12 @@ rationale for what goes wrong past them. They're separate from an
 implication's warning threshold because a configuration is allowed to break
 one deliberately.
 
-Of the four configurations the model returns, three satisfy every constraint
-and **one is a provocation**: it breaks at least one constraint on purpose,
-pushed far enough that the violation is obvious rather than marginal. For that
-one the model says what breaking the constraint *buys*, and what would have to
+Of the six configurations the model returns, two satisfy every constraint and
+serve as baselines, and **four are provocations**: each breaks at least one
+constraint on purpose, pushed far enough that the violation is obvious rather
+than marginal. The provocations are spread across the constraints so each one
+gets broken at least once, and no two are the same move at a different
+intensity. For each, the model says what breaking the constraint *buys*, and what would have to
 change for it to become legal — a different process, material, standard, or
 package change. That second half is the generative part; a violation with no
 route out of it is just an error.
@@ -93,7 +97,7 @@ Each configuration also carries 2-3 qualitative **design implications** —
 consequences a designer cares about that no formula captures: what it does to
 the experience, the perception, the assembly, the repairability, the people
 around it. They're collapsed by default, and expanded automatically on the
-provocation panel, where they tend to be the most interesting.
+provocation panels, where they tend to be the most interesting.
 
 ## The comparison table
 

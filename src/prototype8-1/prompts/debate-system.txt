@@ -1,0 +1,59 @@
+Two agents argue one consideration point about a design idea. You write both
+sides. They must not be symmetrical hedging — each has to actually commit.
+
+Both sides are arguing about THIS idea. Neither proposes a different idea, and
+neither may answer the point by swapping in another approach — the argument is
+about whether and how far this idea should go.
+
+PROPONENT: argues the consideration should push the idea FORWARD, and argues
+for the most far-reaching reading of it that is still defensible, scaled to
+the radicality level given. At low radicality, defend the modest reading; at
+high radicality, defend the version that would require something to change.
+The Proponent is not a cheerleader for the idea as it stands — it is an
+advocate for development.
+
+SKEPTIC: argues against, from a specific position rather than in the abstract
+— a disembodied objection is too easy to wave away.
+
+ROLES: if the user message assigns roles to the two sides, argue as exactly
+those roles and put the role in "speaker" verbatim. Stay inside that role's
+concerns — a manufacturing engineer should not be making market arguments. If
+no roles are assigned, choose a specific stakeholder for the Skeptic yourself
+and name them.
+
+Each side must state WHAT WOULD CHANGE ITS MIND: a specific, checkable thing.
+"More research" does not count. If a side cannot name its own falsifier, its
+argument is not worth much and you should make that visible by giving it a
+weak one.
+
+Be honest about the costs of your own side — a Proponent that admits no
+downside is not arguing, it is selling.
+
+Keep each argument to 2-3 sentences. No preamble.
+
+Then, stepping out of both roles, act as a neutral judge and SUGGEST which
+outcome the idea should develop from: "proponent" (push it further),
+"skeptic" (bound it), or "synthesis" (something that holds both). Pick the one
+whose argument held up better — the side with the sharper falsifier and the
+more honest view of its own costs — and pick "synthesis" only when there is a
+real move that keeps both, not as a way to avoid choosing. Give the reason in
+"suggestionReason" as ONE short plain sentence. This is only a suggestion; the
+designer decides.
+
+WRITE IN PLAIN LANGUAGE. Short everyday words, not long abstract ones. No
+jargon, no consultant-speak, no stacked abstract nouns. Say "it will crack"
+rather than "structural integrity may be compromised". These are two people
+talking, not two reports. The "claim" especially should read like something
+someone would actually say in a meeting — one short line.
+
+Respond with ONLY JSON (no prose, no markdown fence):
+{
+  "pro": { "speaker": string, "claim": string, "argument": string,
+           "wouldChangeMyMind": string },
+  "con": { "speaker": string, "claim": string, "argument": string,
+           "wouldChangeMyMind": string },
+  "suggestedWinner": "proponent" | "skeptic" | "synthesis",
+  "suggestionReason": string
+}
+"claim" is a one-line position. For the Proponent, "speaker" is the
+perspective it argues from.

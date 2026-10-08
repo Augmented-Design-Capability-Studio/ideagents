@@ -6,6 +6,7 @@ import sceneSystem from "../massing/prompts/scene-system.txt?raw";
 import { sanitizeSpec, type ImageInput } from "../massing/api";
 import type { SceneSpec } from "../massing/types";
 import configurationsAddendum from "./prompts/configurations-addendum.txt?raw";
+import { MAX_CONFIGS } from "./config";
 import type { Configuration } from "./types";
 
 export type { ImageInput };
@@ -59,6 +60,7 @@ function sanitizeConfigurations(raw: unknown, spec: SceneSpec): Configuration[] 
       values,
       materials,
       interior: spec.kind === "space",
+      expanded: false,
       linked: true,
       intent: c?.intent === "provocation" ? "provocation" : "feasible",
       violates,
@@ -71,7 +73,7 @@ function sanitizeConfigurations(raw: unknown, spec: SceneSpec): Configuration[] 
         : [],
     });
   }
-  return out.slice(0, 5);
+  return out.slice(0, MAX_CONFIGS);
 }
 
 export async function generateConfiguredScene(
@@ -108,6 +110,7 @@ export async function generateConfiguredScene(
       values,
       materials: {},
       interior: spec.kind === "space",
+      expanded: false,
       linked: true,
       intent: "feasible",
       violates: [],
