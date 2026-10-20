@@ -58,6 +58,41 @@ Then raise ONE new consideration point about THAT idea state: the next thing
 two reasonable people would disagree about. Do not repeat a consideration
 already in the path you are given.
 
+RAISE IT FROM THE OPPONENT'S EXPERTISE. You are told who argues: the
+Proponent ("you", arguing for the idea) and the Skeptic (the opponent). The
+new consideration must be one the opponent would actually push on, in their
+own terms — a manufacturing engineer raises tooling, assembly and volume; a
+cost accountant raises unit cost and margin; a safety assessor raises failure
+modes. Pitch it at the level below: the broad version of their question early
+on, the specific version later.
+
+LEVELS. The idea develops from broad to specific through four levels:
+- direction: what the idea is, who it's for, the overall strategy
+- concept: how it works — the main mechanism or principle
+- embodiment: form, layout, materials, how the parts fit together
+- detail: manufacturing, cost, tolerances, edge cases, failure modes
+
+You are told the current level and which levels the new consideration may sit
+at. Raise it at exactly one of those, and return that level in "level". Move
+down a level only when nothing big is left to argue at the current one. When
+you are told you must move down, do. Keep the idea state only as specific as
+its level: at direction level, don't invent dimensions or materials.
+
+STATUS. Then judge whether this branch should keep going, in "status":
+- "continue": there is still something real to argue. Most moves are this.
+- "settled": ONLY at detail level — the idea is resolved enough that nothing
+  left would split two reasonable people.
+- "dead_end": the idea can no longer meet the design problem — a hard
+  requirement in the problem can't be met, or the same objection has now won
+  more than once on this path and answering it guts the idea.
+- "drifted": this version no longer does what the seed idea set out to do — it
+  has become a different idea.
+- "circling": the new consideration repeats one already raised on this path in
+  different words, or this move barely changed the idea.
+Give "statusReason" as ONE short plain sentence (empty for "continue"). Always
+return a consideration even when stopping — the designer may choose to keep
+going.
+
 WRITE IN PLAIN LANGUAGE. Short everyday words, not long abstract ones. No
 jargon, no consultant-speak, no stacked abstract nouns ("experiential quality
 optimisation"). Say "costs more" rather than "presents cost implications". A
@@ -69,7 +104,10 @@ Respond with ONLY JSON (no prose, no markdown fence):
   "ideaSummary": string,
   "carriedForward": string,
   "whatChanged": string,
-  "consideration": { "text": string, "title": string, "kind": string }
+  "consideration": { "text": string, "title": string, "kind": string },
+  "level": "direction" | "concept" | "embodiment" | "detail",
+  "status": "continue" | "settled" | "dead_end" | "drifted" | "circling",
+  "statusReason": string
 }
 
 "carriedForward" names what from the previous version is still true, in one

@@ -21,7 +21,7 @@ paste a Gemini API key. A sample problem and seed idea are pre-filled.
 |---|---|
 | Node | A consideration point — a perspective, assumption, tension or improvement |
 | Players | Proponent, Skeptic, and you as judge |
-| Action | Which way the idea develops: Skeptic wins / Synthesis / Proponent wins |
+| Action | Which way the idea develops: Opponent wins / Synthesis / You win |
 | Path | The idea's development history and accumulated commitments |
 
 There are deliberately **no payoff scores** in this variant. An earlier version
@@ -120,24 +120,24 @@ model for a loose marker-style concept sketch of that node's idea state —
 deliberately a sketch rather than a render, so it reads as something to think
 with and doesn't overclaim precision.
 
-When the parent already has a sketch, it's passed in as the input image with
-an instruction to keep the same subject, viewpoint and style and change only
-what the description says is different. So sketching down a branch produces
+When an ancestor already has a sketch, the **nearest sketched one** is passed
+in as the input image with an instruction to keep the same subject, viewpoint
+and style and change only what the description says is different. (With sparse
+sketching the direct parent usually has none.) So sketching down a branch produces
 **one drawing evolving**, not a set of unrelated pictures — the visual
 counterpart of the continuity rule in the develop prompt.
 
-**Sketch every node automatically** is on by default (a checkbox in Setup turns
-it off). The queue runs **entirely beside** the develop/debate pipeline —
-nodes and their arguments never wait on a drawing — and up to three drawings
-can be in flight at once. The queue is declarative, watching for nodes that
-lack a sketch, which means it picks up nodes however they were made: the root,
-the `+` button, or auto-play.
+Images are the most expensive call, so only **the root and the end of each
+played-out future** are sketched automatically — the points worth comparing.
+Every other node is sketched on demand from its picture button. (A checkbox in
+Setup turns the automatic ones off too.) The queue runs **entirely beside** the
+develop/debate pipeline — nodes never wait on a drawing — and up to three
+drawings can be in flight at once.
 
-The one ordering rule is that a node only becomes eligible once its parent has
-*settled* — has an image, or has failed to get one. A child's sketch is
-conditioned on its parent's image to keep a branch visually continuous, and
-without the failure case a parent whose sketch errored would strand its entire
-subtree.
+The one ordering rule is that a node only becomes eligible once every ancestor
+that is also due a sketch has *settled* — has an image, or has failed to get
+one. Without the failure case, an ancestor whose sketch errored would strand
+everything below it.
 
 Nodes appear immediately and the drawing fills in. The thumbnail slot is
 **reserved while the sketch is still coming back**, showing a dashed
@@ -149,18 +149,85 @@ Nodes without a sketch stay compact, since node height is computed per node.
 The image model is chosen in the Agent dialog (shared with prototype 6, which
 uses the same plumbing).
 
-## Auto-play
+## Playing out futures
 
-**Auto-play ×3**, in the tree's title bar, develops three plies down from the
-**selected** node. At each ply it tries outcomes in order — the winner you
-marked, else the debate's suggested winner, then the rest (synthesis first) —
-and takes the first one *that hasn't been developed yet*, so every ply creates
-a node from where you are rather than walking down branches that already
-exist. If all three outcomes already exist it follows the top pick. Auto-play
-never marks winners; that stays your call.
+**Play out futures** (in the tree's title bar, and under Outcomes in the panel)
+works from the **selected** node. It develops all three of its outcomes, then
+**branches at every step**: each new node develops two outcomes — its suggested
+winner and a contrasting one (Skeptic ↔ Proponent; Synthesis pairs with
+Proponent) — for three steps in total. An earlier version followed only the
+suggested winner, and since the judge leans cautious, futures came out as long
+strings of "Skeptic wins"; branching plays both sides of each argument forward.
+The debate prompt also now tells the judge that caution isn't the same as being
+right.
 
-Each new node is debated before the next ply, so auto-play leaves every node
-argued rather than a bare leaf at the end.
+**Every node stays independent.** Each is developed and then debated on its
+own, exactly as if you had clicked through by hand — nothing is written ahead
+knowing where the story ends, and every node can be re-ruled or branched from
+later. A full play-out is up to 21 nodes (3 + 6 + 12), about 42 calls. Branches
+run in parallel, with **at most four calls in flight at once** across the
+prototype so a burst doesn't trip the API's rate limit. Nodes that already
+exist are reused, branches end early if they stop, and nothing is marked as a
+winner for you.
+
+Only the end of each future's **main line** — following the top pick at every
+step — is sketched automatically, so a play-out adds three images, not twelve.
+
+A develop already in flight for the same node and outcome is shared, so a
+future and a click on the same dot can't create two children for one outcome.
+
+## Levels: broad first, specific later
+
+Early debates tend to be over the top — arguing tolerances before anyone has
+agreed what the idea is for. So every node has a **level**:
+
+| Level | Considerations are about |
+|---|---|
+| **Direction** | What the idea is, who it's for, the overall strategy |
+| **Concept** | How it works — the main mechanism or principle |
+| **Embodiment** | Form, layout, materials, how the parts fit together |
+| **Detail** | Manufacturing, cost, tolerances, edge cases, failure modes |
+
+The root always starts at Direction. Each develop call is told the current
+level and which levels the next consideration may take; the model moves down
+a level when nothing big is left to argue at this one. Code enforces the rules
+whatever the model says: a branch only ever moves down **one level at a
+time**, never back up, and after **three considerations in a row at one
+level** it must move down. The debate prompt is told the level too, so a
+Direction debate argues strategy and a Detail debate gets concrete.
+
+The level shows on each node ("IDEA · CONCEPT"), and an edge that moves down
+a level is labelled with it ("Synthesis · ↓ Embodiment").
+
+## Stop conditions
+
+Each develop call also judges whether the branch should end:
+
+| Stop | When |
+|---|---|
+| **Settled** | Only at Detail level — nothing left would split two reasonable people |
+| **Dead end** | The idea can no longer meet the problem, e.g. the same objection has won more than once and answering it guts the idea |
+| **Drifted** | The idea no longer does what the seed set out to do. Also forced in code when nothing carried forward |
+| **Going in circles** | The new point repeats an earlier one, or the move barely changed the idea |
+| **Depth limit** | Forced in code at 10 steps |
+
+A stopped node is made to read **from across the canvas**: the whole card is
+washed in the stop's colour with a thick border, and a solid banner with a
+symbol (✓ settled, ✕ dead end, ↯ drifted, ↻ going in circles, ‖ depth limit)
+replaces the debate point, with the one-line reason under it. The symbols keep
+the kinds apart zoomed out or in greyscale; dead ends also recede slightly so
+settled endings draw the eye first. It **isn't debated** — that call is saved — and it has no dots or
+`+`, so nothing grows from it. **Keep going anyway** in the panel overrides
+the stop: the node is debated and the branch can grow again.
+
+## Tracing how an idea got here
+
+Selecting a node highlights its **lineage** on the canvas — its path from the
+root (also drawn as a soft band under the edges) and every node that grew from
+it — and fades everything else, and the
+panel lists it under **How it got here**: every version of the idea with its
+level, and between each, which outcome won on which point. Each step is
+clickable. It costs no calls — it's read straight off the tree.
 
 ## The call pipeline
 
@@ -169,10 +236,12 @@ Two calls per node, and nothing is ever recomputed.
 | Action | Calls |
 |---|---|
 | Start a game | **2** — root consideration, then its debate |
-| `+` on a node, or one auto-play ply | **2** — develop the child, then debate it |
-| "Develop this outcome" in the panel | **1** now, +1 when you open that child |
+| `+` on a node | **2** — develop the child, then debate it |
+| Play out futures | **up to ~42** — 21 nodes × 2, four at a time; fewer if branches stop |
+| "Develop this outcome" in the panel, or clicking an open dot | **2** — develop the child, then debate it straight away |
 | Selecting any node, marking a winner, switching branches | **0** |
-| Sketching a node | **1** — automatic by default, or on demand if you turn that off |
+| A node that stops its branch | **1** — developed, but not debated |
+| Sketching a node | **1** — automatic for the root and future ends, otherwise on demand |
 
 The two calls per node are necessarily sequential: the debate needs the
 consideration the develop call produces.
@@ -205,13 +274,26 @@ deliberately — that's often the point.
 Letting the model invent a stakeholder each time produced speakers that felt
 arbitrary and drifted between nodes. Instead you pick a **pair** up front —
 Designer vs Manufacturing engineer, User advocate vs Business owner, Futurist
-vs Pragmatist, and so on, or "let the model choose" for the old behaviour. The
-pair is passed into the debate prompt as assigned roles, and each side is told
-to stay inside its own concerns.
+vs Pragmatist, and so on, or "let the model choose".
 
-It applies to debates generated from then on; nodes already argued keep their
-speakers. So switching pairs partway through is a way to re-argue the same
-idea from a different lens and compare the two branches side by side.
+The two sides are named plainly throughout: the Proponent is **you**, the side
+arguing for the idea, and the Skeptic is **the opponent**. Setup spells out who
+each one is, the debate cards are labelled "You · for the idea" and "Opponent",
+and the outcomes read **You win / Synthesis / Opponent wins**.
+
+The pair is passed to every prompt, not just the debate. In particular, each
+point up for debate is **raised from inside the opponent's expertise** — a
+manufacturing engineer gets tooling, assembly and volume; a cost accountant
+gets unit cost and margin — at the current level, so at Direction it's the
+broad version of their question ("can this be built at volume at all?") and
+the specific version later. Before this, the point was written without knowing
+who would argue it, so a manufacturing engineer could end up debating market
+positioning. The debate prompt then has your side answer the opponent's
+concern directly rather than change the subject.
+
+It applies to points and debates generated from then on; nodes already argued
+keep their speakers. So switching pairs partway through is a way to re-argue
+the same idea from a different lens and compare the two branches side by side.
 
 ## The canvas
 
@@ -238,7 +320,7 @@ nudged nodes stay pinned while everything reflows around them and the new node
 lands on top of one. Nudges on nodes the layout left alone survive.
 
 **The canvas glides to a node** when you hit "Go to branch", develop a new one,
-or auto-play — otherwise the tree keeps growing off the bottom of the viewport
+or play out futures — otherwise the tree keeps growing off the bottom of the viewport
 and you lose it.
 
 **The selected node** gets a halo, a drop shadow, a heavier border and a
@@ -256,7 +338,13 @@ Each node has **three output dots** on its bottom edge, one per outcome, in the
 same left-to-right order the layout places the children, and each connector
 starts from its outcome's dot so they fan out without crossing. A filled dot
 means that case is developed, a hollow one that it's still open; the winner's
-dot is larger.
+dot is larger. The dots are **clickable**: an open one develops that case (with a
+spinner in the dot while it works), a filled one jumps to its branch.
+
+Every new node is **debated as soon as it's created**, however it was made, so
+it's ready to rule on by the time you get to it. A debate already in flight for
+a node is shared, so `+` and playing out futures asking for the same one don't start a
+second call.
 
 A note for anyone extending this: panning deliberately tracks pointer moves on
 `window` rather than using `setPointerCapture`. Capturing the pointer on the
@@ -275,10 +363,10 @@ wilder one.
   the forced falsifier are the mitigations; if the debates still read as bland,
   that's the first thing to tune in `prompts/debate-system.txt`.
 - **The suggested winner is one model's opinion.** It's there to break the
-  blank-page moment and to steer `+` and auto-play, not to stand in for your
+  blank-page moment and to steer `+` and playing out futures, not to stand in for your
   judgement — which is why it never marks the winner itself.
 - **Cost grows with the tree.** See the pipeline below. Expansion is on demand
-  and auto-play is capped at three plies.
+  and playing out futures is capped at three steps (21 nodes).
 - **The tree metaphor quietly implies design decisions are sequential and
   independent**, which they aren't. A real design commitment constrains later
   ones in ways a tree doesn't capture; `whatChanged` on each node is a partial

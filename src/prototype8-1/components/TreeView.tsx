@@ -1,7 +1,23 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { MAX_AUTOPLAY_PLIES } from "../config";
-import { activeChild, childrenOf, layoutTree, type NodeMap } from "../tree";
-import { OUTCOMES, OUTCOME_COLORS, OUTCOME_LABELS, type Outcome } from "../types";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { FUTURE_STEPS } from "../config";
+import { activeChild, childrenOf, isTerminal, layoutTree, pathTo, type NodeMap } from "../tree";
+import {
+  LEVEL_LABELS,
+  OUTCOMES,
+  OUTCOME_COLORS,
+  OUTCOME_LABELS,
+  STOP_COLORS,
+  STOP_LABELS,
+  STOP_SYMBOLS,
+  type Outcome,
+} from "../types";
 
 interface Props {
   nodes: NodeMap;
@@ -11,11 +27,14 @@ interface Props {
   // request for the same node still fire.
   focus: { id: string; nonce: number } | null;
   onSelect: (id: string) => void;
+  // Clicking empty canvas clears the selection, and with it the lineage fade.
+  onClearSelection: () => void;
   onDevelopNext: (id: string) => void;
+  onPort: (id: string, outcome: Outcome) => void;
   onVisualize: (id: string) => void;
-  onAutoplay: () => void;
-  autoplaying: boolean;
-  canAutoplay: boolean;
+  onPlayFutures: () => void;
+  playing: boolean;
+  canPlay: boolean;
 }
 
 // A quarter-arc that spins — used wherever a node is waiting on a call.
@@ -64,14 +83,18 @@ const IDEA_LINE_H = 13;
 const PAD_TOP = 18;
 const SECTION_LABEL_H = 13;
 const DIVIDER_GAP = 11;
-const KIND_H = 16;
-const PAD_BOTTOM = 8;
+// Clear space under the last title line for the output dots, which straddle
+// the bottom edge.
+const PAD_BOTTOM = 14;
+// A stopped node's banner is taller than the section label it replaces.
+const STOP_BANNER_EXTRA = 6;
 const THUMB_H = 84;
 
 // One output port per outcome along the bottom edge, in the same left-to-right
 // order the layout places the children (skeptic, synthesis, proponent), so the
 // connectors fan out without crossing.
 const PORT_SPACING = 40;
+const PORT_HIT_R = 12;
 const PORT_X: Record<Outcome, number> = {
   skeptic: NODE_W / 2 - PORT_SPACING,
   synthesis: NODE_W / 2,
@@ -112,11 +135,13 @@ export function TreeView({
   selectedId,
   focus,
   onSelect,
+  onClearSelection,
   onDevelopNext,
+  onPort,
   onVisualize,
-  onAutoplay,
-  autoplaying,
-  canAutoplay,
+  onPlayFutures,
+  playing,
+  canPlay,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -139,7 +164,15 @@ export function TreeView({
   const heights: Record<string, number> = {};
   for (const node of Object.values(nodes)) {
     ideaLines[node.id] = wrap(node.ideaSummary || node.ideaState, IDEA_CHARS, IDEA_MAX_LINES);
-    titleLines[node.id] = wrap(node.consideration.title, TITLE_CHARS, TITLE_MAX_LINES);
+    // A stopped node shows why it stopped in place of the point it would have
+    // been argued on.
+    titleLines[node.id] = wrap(
+      isTerminal(node) && node.stop
+        ? node.stop.note || STOP_LABELS[node.stop.reason]
+        : node.consideration.title,
+      TITLE_CHARS,
+      TITLE_MAX_LINES
+    );
     dividerY[node.id] =
       PAD_TOP +
       SECTION_LABEL_H +
@@ -151,7 +184,7 @@ export function TreeView({
       DIVIDER_GAP / 2 +
       SECTION_LABEL_H +
       titleLines[node.id].length * TITLE_LINE_H +
-      KIND_H +
+      (isTerminal(node) ? STOP_BANNER_EXTRA : 0) +
       PAD_BOTTOM;
   }
 
@@ -288,6 +321,22 @@ export function TreeView({
   if (!rootId) return null;
 
   const list = Object.values(nodes).filter((n) => positions[n.id]);
+  const pathIds = new Set(pathTo(nodes, selectedId).map((n) => n.id));
+
+  // The selected node's lineage: its path back to the root plus everything
+  // that grew from it. Everything else fades, so the trace stands out.
+  const lineage = new Set(pathIds);
+  if (selectedId && nodes[selectedId]) {
+    const stack = [nodes[selectedId]];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      for (const kid of childrenOf(nodes, current)) {
+        lineage.add(kid.id);
+        stack.push(kid);
+      }
+    }
+  }
+  const outsideLineage = (id: string) => selectedId !== null && !lineage.has(id);
   // Selected node paints last so it sits above anything it overlaps.
   const paintOrder = [...list].sort(
     (a, b) => Number(a.id === selectedId) - Number(b.id === selectedId)
@@ -359,11 +408,11 @@ export function TreeView({
             {list.length} node{list.length === 1 ? "" : "s"}
           </span>
           <button
-            onClick={onAutoplay}
-            disabled={autoplaying || !canAutoplay}
-            title={`Develop ${MAX_AUTOPLAY_PLIES} plies down from the selected node, following the winner where you marked one and the suggested winner otherwise. It never marks winners for you.`}
+            onClick={onPlayFutures}
+            disabled={playing || !canPlay}
+            title={`From the selected node, play out all three outcomes ${FUTURE_STEPS} steps ahead, branching into the suggested winner and a contrasting outcome at every step. Every node is developed and debated on its own; nothing is marked as a winner for you.`}
           >
-            {autoplaying ? "Playing…" : `Auto-play ×${MAX_AUTOPLAY_PLIES}`}
+            {playing ? "Playing out…" : "Play out futures"}
           </button>
           <span className="p8-action-divider" aria-hidden="true" />
           <button onClick={() => zoomFromButton(1 / 1.25)} title="Zoom out">
@@ -388,6 +437,11 @@ export function TreeView({
           role="img"
           aria-label={`Idea development tree, ${list.length} nodes`}
           onPointerDown={onPointerDown}
+          // Nodes, dots and buttons stop propagation, so this only fires on
+          // empty canvas — and not at the end of a pan.
+          onClick={() => {
+            if (!movedRef.current) onClearSelection();
+          }}
         >
           <defs>
             <filter id="p8-selected-shadow" x="-30%" y="-30%" width="160%" height="160%">
@@ -395,6 +449,28 @@ export function TreeView({
             </filter>
           </defs>
           <g transform={`translate(${view.x}, ${view.y}) scale(${view.k})`}>
+            {/* The selected node's path from the root, drawn as a soft band
+                under the edges, so you can trace how the idea got here. */}
+            {list.map((node) => {
+              if (!pathIds.has(node.id) || !node.parentId || !pathIds.has(node.parentId)) {
+                return null;
+              }
+              const parent = nodes[node.parentId];
+              const from = at(parent.id);
+              const to = at(node.id);
+              const x1 = from.x + (node.fromOutcome ? PORT_X[node.fromOutcome] : NODE_W / 2);
+              const y1 = from.y + heights[parent.id];
+              const x2 = to.x + NODE_W / 2;
+              const midY = (y1 + to.y) / 2;
+              return (
+                <path
+                  key={`trace-${node.id}`}
+                  d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${to.y}`}
+                  className="p8-trace"
+                />
+              );
+            })}
+
             {list.map((node) => {
               const from = at(node.id);
               const active = activeChild(nodes, node);
@@ -413,7 +489,12 @@ export function TreeView({
                 const y2 = to.y;
                 const midY = (y1 + y2) / 2;
                 return (
-                  <g key={`${node.id}-${child.id}`}>
+                  <g
+                    key={`${node.id}-${child.id}`}
+                    className={
+                      outsideLineage(node.id) || outsideLineage(child.id) ? "p8-faded" : ""
+                    }
+                  >
                     <path
                       d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
                       fill="none"
@@ -432,6 +513,8 @@ export function TreeView({
                     >
                       {isActive ? "★ " : ""}
                       {child.fromOutcome ? OUTCOME_LABELS[child.fromOutcome] : ""}
+                      {/* Moving down a level is marked where it happens. */}
+                      {child.level !== node.level ? ` · ↓ ${LEVEL_LABELS[child.level]}` : ""}
                     </text>
                   </g>
                 );
@@ -452,8 +535,9 @@ export function TreeView({
                 parent!.winner !== node.fromOutcome;
               const busy =
                 node.status === "debating" ||
-                node.developing !== null ||
+                node.developing.length > 0 ||
                 node.imageStatus === "loading";
+              const stopped = isTerminal(node) && node.stop ? node.stop : null;
 
               return (
                 <g
@@ -461,7 +545,12 @@ export function TreeView({
                   transform={`translate(${pos.x}, ${pos.y})`}
                   className={`p8-node ${abandoned ? "p8-node-abandoned" : ""} ${
                     selected ? "p8-node-selected" : ""
-                  } ${busy ? "p8-node-busy" : ""}`}
+                  } ${busy ? "p8-node-busy" : ""} ${
+                    stopped ? `p8-node-stopped p8-stop-${stopped.reason}` : ""
+                  } ${outsideLineage(node.id) ? "p8-faded" : ""}`}
+                  style={
+                    stopped ? ({ "--stop": STOP_COLORS[stopped.reason] } as CSSProperties) : undefined
+                  }
                   onPointerDown={(e) => onNodePointerDown(e, node.id)}
                   onClick={clickIfNotDragging(() => onSelect(node.id))}
                 >
@@ -480,6 +569,7 @@ export function TreeView({
                     height={h}
                     rx={6}
                     className="p8-node-box"
+                    // A stopped node's fill and border come from CSS (--stop).
                     stroke={selected ? "#1a1a1a" : "#ccc"}
                     strokeWidth={selected ? 2.5 : 1}
                     filter={selected ? "url(#p8-selected-shadow)" : undefined}
@@ -493,7 +583,7 @@ export function TreeView({
                   />
                   {/* Top half: the idea as it currently stands. */}
                   <text x={13} y={PAD_TOP} className="p8-node-section">
-                    IDEA NOW
+                    IDEA · {LEVEL_LABELS[node.level].toUpperCase()}
                   </text>
 
                   <g
@@ -560,86 +650,136 @@ export function TreeView({
                     )
                   )}
 
-                  <line
-                    x1={13}
-                    y1={dividerY[node.id]}
-                    x2={NODE_W - 13}
-                    y2={dividerY[node.id]}
-                    className="p8-node-divider"
-                  />
-
-                  {/* Bottom half: what is being argued about it. */}
-                  <text
-                    x={13}
-                    y={dividerY[node.id] + DIVIDER_GAP / 2 + SECTION_LABEL_H - 3}
-                    className="p8-node-section"
-                  >
-                    UP FOR DEBATE
-                  </text>
+                  {stopped ? (
+                    // A solid banner in the stop's colour, readable from across
+                    // the canvas, with the one-line reason under it.
+                    <>
+                      <rect
+                        x={8}
+                        y={dividerY[node.id] - 2}
+                        width={NODE_W - 16}
+                        height={SECTION_LABEL_H + STOP_BANNER_EXTRA + 2}
+                        rx={3}
+                        className="p8-stop-banner"
+                      />
+                      <text
+                        x={14}
+                        y={dividerY[node.id] + SECTION_LABEL_H + 1}
+                        className="p8-stop-banner-text"
+                      >
+                        {STOP_SYMBOLS[stopped.reason]} {STOP_LABELS[stopped.reason].toUpperCase()}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <line
+                        x1={13}
+                        y1={dividerY[node.id]}
+                        x2={NODE_W - 13}
+                        y2={dividerY[node.id]}
+                        className="p8-node-divider"
+                      />
+                      {/* Bottom half: what is being argued about it. */}
+                      <text
+                        x={13}
+                        y={dividerY[node.id] + DIVIDER_GAP / 2 + SECTION_LABEL_H - 3}
+                        className="p8-node-section"
+                      >
+                        UP FOR DEBATE
+                      </text>
+                    </>
+                  )}
                   {lines.map((line, i) => (
                     <text
                       key={`title-${i}`}
                       x={13}
-                      y={dividerY[node.id] + DIVIDER_GAP / 2 + SECTION_LABEL_H + 11 + i * TITLE_LINE_H}
+                      y={
+                        dividerY[node.id] +
+                        DIVIDER_GAP / 2 +
+                        SECTION_LABEL_H +
+                        11 +
+                        (stopped ? STOP_BANNER_EXTRA : 0) +
+                        i * TITLE_LINE_H
+                      }
                       className="p8-node-title"
                     >
                       {line}
                     </text>
                   ))}
-                  <text x={13} y={h - 9} className="p8-node-kind">
-                    {node.consideration.kind}
-                    {node.winner !== null && ` · ★ ${OUTCOME_LABELS[node.winner].toLowerCase()}`}
-                  </text>
 
-                  {/* Output ports: filled where that case has been developed,
-                      hollow where it's still open. The winner's port is larger;
-                      the others fade once a winner is marked, like their edges. */}
-                  {OUTCOMES.map((o) => {
-                    const childId = node.childByOutcome[o];
-                    const explored = Boolean(childId && nodes[childId]);
-                    const isWinner = node.winner === o;
-                    const ruledOut = node.winner !== null && !isWinner;
-                    return (
-                      <circle
-                        key={`port-${o}`}
-                        cx={PORT_X[o]}
-                        cy={h}
-                        r={isWinner ? 5.5 : explored ? 4.5 : 3.5}
-                        className={`p8-port ${explored ? "p8-port-explored" : "p8-port-open"}`}
-                        fill={explored ? OUTCOME_COLORS[o] : "#fff"}
-                        stroke={explored ? "#fff" : OUTCOME_COLORS[o]}
-                        fillOpacity={explored && ruledOut ? 0.55 : 1}
+                  {/* A stopped branch has no ports or "+" — nothing grows from it
+                      unless the designer chooses to keep going in the panel. */}
+                  {!stopped && (
+                    <>
+                      {/* Output ports: filled where that case has been developed,
+                          hollow where it's still open. The winner's port is larger;
+                          the others fade once a winner is marked, like their edges.
+                          Clicking one develops that case, or jumps to it. */}
+                      {OUTCOMES.map((o) => {
+                        const childId = node.childByOutcome[o];
+                        const explored = Boolean(childId && nodes[childId]);
+                        const isWinner = node.winner === o;
+                        const ruledOut = node.winner !== null && !isWinner;
+                        const developingThis = node.developing.includes(o);
+                        return (
+                          <g
+                            key={`port-${o}`}
+                            className={`p8-port ${explored ? "p8-port-explored" : "p8-port-open"}`}
+                            transform={`translate(${PORT_X[o]}, ${h})`}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              movedRef.current = false;
+                            }}
+                            onClick={clickIfNotDragging(() => {
+                              if (!developingThis) onPort(node.id, o);
+                            })}
+                          >
+                            <title>
+                              {OUTCOME_LABELS[o]}
+                              {isWinner ? " (winner)" : ""} —{" "}
+                              {developingThis
+                                ? "developing…"
+                                : explored
+                                  ? "click to go to this branch"
+                                  : "click to develop this case"}
+                            </title>
+                            {/* Larger invisible target, so the dot is easy to hit. */}
+                            <circle r={PORT_HIT_R} className="p8-port-hit" />
+                            <circle
+                              r={isWinner ? 8 : explored ? 7 : 6}
+                              className="p8-port-dot"
+                              fill={explored ? OUTCOME_COLORS[o] : "#fff"}
+                              stroke={explored ? "#fff" : OUTCOME_COLORS[o]}
+                              fillOpacity={explored && ruledOut ? 0.55 : 1}
+                            />
+                            {developingThis && <Spinner cx={0} cy={0} r={3.5} />}
+                          </g>
+                        );
+                      })}
+
+                      {/* Sits on the bottom-right corner, clear of the output ports
+                          along the bottom edge. */}
+                      <g
+                        className="p8-node-add"
+                        transform={`translate(${NODE_W - 11}, ${h - 11})`}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          movedRef.current = false;
+                        }}
+                        onClick={clickIfNotDragging(() => onDevelopNext(node.id))}
                       >
-                        <title>
-                          {OUTCOME_LABELS[o]}
-                          {isWinner ? " (winner)" : ""} —{" "}
-                          {explored ? "developed" : "not developed yet"}
-                        </title>
-                      </circle>
-                    );
-                  })}
-
-                  {/* Sits on the bottom-right corner, clear of the output ports
-                      along the bottom edge. */}
-                  <g
-                    className="p8-node-add"
-                    transform={`translate(${NODE_W - 11}, ${h - 11})`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      movedRef.current = false;
-                    }}
-                    onClick={clickIfNotDragging(() => onDevelopNext(node.id))}
-                  >
-                    <title>Develop the winner from this node — or the suggested winner if none is marked</title>
-                    <circle cx={11} cy={11} r={10} className="p8-add-circle" />
-                    {node.developing !== null || node.status === "debating" ? (
-                      <Spinner cx={11} cy={11} r={5.5} />
-                    ) : (
-                      <text x={11} y={15} textAnchor="middle" className="p8-add-plus">
-                        +
-                      </text>
-                    )}
-                  </g>
+                        <title>Develop the winner from this node — or the suggested winner if none is marked</title>
+                        <circle cx={11} cy={11} r={10} className="p8-add-circle" />
+                        {node.developing.length > 0 || node.status === "debating" ? (
+                          <Spinner cx={11} cy={11} r={5.5} />
+                        ) : (
+                          <text x={11} y={15} textAnchor="middle" className="p8-add-plus">
+                            +
+                          </text>
+                        )}
+                      </g>
+                    </>
+                  )}
                 </g>
               );
             })}
@@ -647,20 +787,89 @@ export function TreeView({
         </svg>
       </div>
       <div className="p8-canvas-footer">
-        <span className="p8-legend">
+        <div className="p8-legend-row">
+          <span className="p8-legend-label">Edges</span>
           {OUTCOMES.map((o) => (
             <span className="p8-legend-item" key={o}>
               <i className="p8-legend-swatch" style={{ background: OUTCOME_COLORS[o] }} />
               {OUTCOME_LABELS[o]}
             </span>
           ))}
-        </span>
-        <span className="p8-hint">
-          ★ = the winner you marked · dashed = a developed case that didn't win · dots on a
-          node's bottom edge are its three cases (filled = developed, hollow = open, large =
-          winner) · drag a node to nudge
-          it, drag the canvas to pan, scroll to zoom
-        </span>
+          <span className="p8-legend-item">
+            <svg width="22" height="8" aria-hidden="true">
+              <line x1="1" y1="4" x2="21" y2="4" stroke="#555" strokeWidth="3" />
+            </svg>
+            ★ Winner
+          </span>
+          <span className="p8-legend-item">
+            <svg width="22" height="8" aria-hidden="true">
+              <line
+                x1="1"
+                y1="4"
+                x2="21"
+                y2="4"
+                stroke="#555"
+                strokeWidth="1.75"
+                strokeOpacity="0.4"
+                strokeDasharray="4 3"
+              />
+            </svg>
+            Didn't win
+          </span>
+        </div>
+
+        <div className="p8-legend-row">
+          <span className="p8-legend-label">Dots</span>
+          <span className="p8-legend-item">
+            <svg width="16" height="16" aria-hidden="true">
+              <circle cx="8" cy="8" r="5" fill="#555" />
+            </svg>
+            Developed — click to go
+          </span>
+          <span className="p8-legend-item">
+            <svg width="16" height="16" aria-hidden="true">
+              <circle cx="8" cy="8" r="4.5" fill="#fff" stroke="#555" strokeWidth="1.5" />
+            </svg>
+            Open — click to develop
+          </span>
+          <span className="p8-legend-item">
+            <svg width="16" height="16" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" fill="#555" />
+            </svg>
+            Winner
+          </span>
+        </div>
+
+        <div className="p8-legend-row">
+          <span className="p8-legend-label">Stops</span>
+          {(["settled", "dead_end", "drifted", "circling", "depth_limit"] as const).map((reason) => (
+            <span className="p8-legend-item" key={reason}>
+              <i
+                className="p8-legend-stop"
+                style={{ "--stop": STOP_COLORS[reason] } as CSSProperties}
+              >
+                {STOP_SYMBOLS[reason]}
+              </i>
+              {STOP_LABELS[reason]}
+            </span>
+          ))}
+        </div>
+
+        <div className="p8-legend-row">
+          <span className="p8-legend-label">Controls</span>
+          <span className="p8-legend-item">
+            <kbd>Drag node</kbd> nudge
+          </span>
+          <span className="p8-legend-item">
+            <kbd>Drag canvas</kbd> pan
+          </span>
+          <span className="p8-legend-item">
+            <kbd>Scroll</kbd> zoom
+          </span>
+          <span className="p8-legend-item">
+            <kbd>Select</kbd> highlight its path and everything below it
+          </span>
+        </div>
       </div>
     </section>
   );

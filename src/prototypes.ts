@@ -69,7 +69,7 @@ export const PROTOTYPES: PrototypeInfo[] = [
         id: "prototype8-1",
         title: "8.1 — Extensive-form tree",
         description:
-          "Each node is a consideration point two agents argue over; you develop the outcomes you want and mark one as the winner (the debate suggests one). Every branch is kept, so changing the winner is free and the road not taken stays visible.",
+          "Each node is a consideration point two agents argue over, moving from broad direction down to detail. Play out alternate futures from any node, trace how an idea got where it is, and see where branches settle, dead-end or drift. You mark the winners; every branch is kept.",
         path: "/prototype8-1/",
       },
       {

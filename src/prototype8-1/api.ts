@@ -1,11 +1,22 @@
 import { callGemini, generateImage, parseJSON } from "../shared/gemini";
 import { getImageModel, getModel } from "../shared/storage";
-import { debaterPair, RADICALITY_LABELS, TEMPERATURE } from "./config";
+import { debaterPair, MAX_DEPTH, RADICALITY_LABELS, TEMPERATURE } from "./config";
 import rootSystem from "./prompts/root-system.txt?raw";
 import debateSystem from "./prompts/debate-system.txt?raw";
 import developSystem from "./prompts/develop-system.txt?raw";
 import sketchPrompt from "./prompts/sketch-prompt.txt?raw";
-import type { Consideration, Debate, IdeaNode, Outcome, Side } from "./types";
+import { levelOptions } from "./tree";
+import {
+  LEVEL_FOCUS,
+  LEVELS,
+  type Consideration,
+  type Debate,
+  type IdeaNode,
+  type Level,
+  type Outcome,
+  type Side,
+  type StopReason,
+} from "./types";
 
 function str(v: unknown, fallback = ""): string {
   return typeof v === "string" && v.trim() ? v.trim() : fallback;
@@ -38,7 +49,7 @@ function evolutionSummary(path: IdeaNode[]): string {
   return path
     .map(
       (n, i) =>
-        `v${i + 1}${n.fromOutcome ? ` (after "${n.fromOutcome}" won)` : " (seed)"}: ${
+        `v${i + 1} [${n.level}]${n.fromOutcome ? ` (after "${n.fromOutcome}" won)` : " (seed)"}: ${
           n.ideaSummary || n.ideaState
         }`
     )
@@ -50,22 +61,44 @@ function pathSummary(path: IdeaNode[]): string {
   return path
     .map(
       (n, i) =>
-        `${i + 1}. ${n.consideration.title} — ${n.consideration.text}${
+        `${i + 1}. [${n.level}] ${n.consideration.title} — ${n.consideration.text}${
           n.fromOutcome ? ` [resolved as: ${n.fromOutcome}]` : ""
         }`
     )
     .join("\n");
 }
 
+// Who argues which side. The Proponent is "you" — the side arguing for the
+// idea — and the Skeptic is the opponent. Every prompt gets the same brief, so
+// the point raised falls inside the opponent's expertise and the debate is
+// argued by the people the designer picked.
+function sidesBrief(pairId: string): string {
+  const pair = debaterPair(pairId);
+  if (pair.id === "auto") {
+    return [
+      "Who argues:",
+      "- Proponent (you, arguing for the idea): a perspective you choose",
+      "- Skeptic (the opponent): no one assigned — pick the specific stakeholder whose expertise this point most depends on",
+    ].join("\n");
+  }
+  return [
+    "Who argues:",
+    `- Proponent (you, arguing for the idea): ${pair.pro.role} — ${pair.pro.stance}`,
+    `- Skeptic (the opponent): ${pair.con.role} — ${pair.con.stance}`,
+  ].join("\n");
+}
+
 export async function generateRoot(
   apiKey: string,
   problem: string,
   seed: string,
-  radicality: number
+  radicality: number,
+  pairId: string
 ): Promise<{ ideaSummary: string; consideration: Consideration }> {
   const user = [
     `Design problem:\n${problem}`,
     `Seed idea:\n${seed}`,
+    sidesBrief(pairId),
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
   ].join("\n\n");
   const text = await callGemini(apiKey, getModel(), rootSystem, user, {
@@ -87,26 +120,15 @@ export async function runDebate(
   radicality: number,
   pairId: string
 ): Promise<Debate> {
-  const pair = debaterPair(pairId);
-  const roles =
-    pair.id === "auto"
-      ? ""
-      : [
-          `Assigned roles:`,
-          `- Proponent speaks as: ${pair.pro.role} — ${pair.pro.stance}`,
-          `- Skeptic speaks as: ${pair.con.role} — ${pair.con.stance}`,
-        ].join("\n");
-
   const user = [
     `Design problem:\n${problem}`,
     `The idea as it stands:\n${node.ideaState}`,
     `Consideration point under debate:\n${node.consideration.title} — ${node.consideration.text}`,
+    `Level of this consideration: ${node.level} — ${LEVEL_FOCUS[node.level]}`,
     `Path so far:\n${pathSummary(path.slice(0, -1))}`,
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
-    roles,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+    sidesBrief(pairId),
+  ].join("\n\n");
 
   const text = await callGemini(apiKey, getModel(), debateSystem, user, {
     temperature: TEMPERATURE,
@@ -125,8 +147,9 @@ export async function runDebate(
   };
 }
 
-// Sketches the idea at a node. When the parent already has one, it's passed as
-// the input image so the branch reads as one drawing evolving rather than a
+// Sketches the idea at a node. When an ancestor already has one (the nearest
+// sketched one — with sparse sketching it's often not the direct parent), it's
+// passed as the input image so the branch reads as one drawing evolving rather than a
 // set of unrelated pictures — the visual counterpart of the continuity rule in
 // the develop prompt.
 export async function generateSketch(
@@ -144,7 +167,7 @@ export async function generateSketch(
     if (comma > -1 && mimeMatch) {
       input = { mimeType: mimeMatch[1], base64Data: parentImageDataUrl.slice(comma + 1) };
       parts.push(
-        "The supplied image is the PREVIOUS version of this same idea. Keep the same subject, viewpoint and drawing style, and change only what the description above says is different. This is one idea evolving, not a new one."
+        "The supplied image is an EARLIER version of this same idea (possibly several steps back). Keep the same subject, viewpoint and drawing style, and change only what the description above says is different. This is one idea evolving, not a new one."
       );
     }
   }
@@ -159,15 +182,35 @@ export async function developOutcome(
   node: IdeaNode,
   path: IdeaNode[],
   outcome: Outcome,
-  radicality: number
+  radicality: number,
+  pairId: string
 ): Promise<{
   ideaState: string;
   ideaSummary: string;
   carriedForward: string;
   whatChanged: string;
   consideration: Consideration;
+  level: Level;
+  stop: { reason: StopReason; note: string } | null;
 }> {
   if (!node.debate) throw new Error("Run the debate before developing an outcome.");
+
+  const levels = levelOptions(path);
+  const allowed: Level[] = levels.mustDescend
+    ? [levels.next as Level]
+    : levels.next
+      ? [levels.current, levels.next]
+      : [levels.current];
+  const levelBrief = [
+    `Current level: ${levels.current} — ${LEVEL_FOCUS[levels.current]} (${levels.countAtLevel} consideration${
+      levels.countAtLevel === 1 ? "" : "s"
+    } argued at this level so far on this path)`,
+    levels.mustDescend
+      ? `You MUST move down: the new consideration goes at ${levels.next} — ${
+          LEVEL_FOCUS[levels.next as Level]
+        }`
+      : `The new consideration may sit at: ${allowed.join(" or ")}`,
+  ].join("\n");
 
   const user = [
     `Design problem:\n${problem}`,
@@ -177,6 +220,8 @@ export async function developOutcome(
     `Proponent (${node.debate.pro.speaker}): ${node.debate.pro.claim}\n${node.debate.pro.argument}`,
     `Skeptic (${node.debate.con.speaker}): ${node.debate.con.claim}\n${node.debate.con.argument}`,
     `Outcome to develop: ${outcome}`,
+    levelBrief,
+    sidesBrief(pairId),
     `Considerations already raised on this path (do not repeat):\n${pathSummary(path)}`,
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
   ].join("\n\n");
@@ -186,11 +231,47 @@ export async function developOutcome(
     json: true,
   });
   const raw = parseJSON<Record<string, unknown>>(text);
+  const carriedForward = str(raw.carriedForward);
+
+  // The level must be one the path allows — never a skipped level, never back
+  // up, and forced down once the current level is used up.
+  const askedLevel = LEVELS.find((l) => l === raw.level);
+  const level: Level = askedLevel && allowed.includes(askedLevel) ? askedLevel : allowed[0];
+
   return {
     ideaState: str(raw.ideaState, "(no idea state returned)"),
     ideaSummary: str(raw.ideaSummary),
-    carriedForward: str(raw.carriedForward),
+    carriedForward,
     whatChanged: str(raw.whatChanged),
     consideration: toConsideration(raw.consideration),
+    level,
+    stop: decideStop(raw, level, carriedForward, node.depth + 1),
   };
+}
+
+// The model's stop judgement, with the rules that hold regardless of what it
+// says: "settled" only means something at detail level, an empty
+// carriedForward is drift by definition, and depth is capped.
+function decideStop(
+  raw: Record<string, unknown>,
+  level: Level,
+  carriedForward: string,
+  depth: number
+): { reason: StopReason; note: string } | null {
+  const note = str(raw.statusReason);
+  const status = raw.status;
+
+  if (!carriedForward) {
+    return { reason: "drifted", note: "Nothing substantial carried forward from the previous version." };
+  }
+  if (status === "settled" && level === "detail") {
+    return { reason: "settled", note: note || "Nothing left that would split two reasonable people." };
+  }
+  if (status === "dead_end" || status === "drifted" || status === "circling") {
+    return { reason: status, note };
+  }
+  if (depth >= MAX_DEPTH) {
+    return { reason: "depth_limit", note: `Reached the ${MAX_DEPTH}-step limit for one branch.` };
+  }
+  return null;
 }

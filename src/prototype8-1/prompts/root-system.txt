@@ -7,6 +7,22 @@ between two things the idea wants, or a specific potential improvement. It is
 NOT a verdict and NOT a solution: it is the thing two people would disagree
 about. Phrase it so that a reasonable person could argue either side.
 
+RAISE IT FROM THE OPPONENT'S EXPERTISE. You are told who argues: the
+Proponent ("you", arguing for the idea) and the Skeptic (the opponent). The
+point must be one the opponent would actually push on, in their own terms — a
+manufacturing engineer raises tooling, assembly and volume; a cost accountant
+raises unit cost and margin; a safety assessor raises failure modes. A point
+outside the opponent's expertise makes a debate where neither side has
+standing.
+
+Raise it at the DIRECTION level: what the idea is, who it is for, and the
+overall strategy — not how it works or how it is built. The game moves from
+broad to specific, and detailed questions come later once the direction is
+argued out. A consideration about dimensions, materials or tolerances is too
+early here. Ask the BROAD version of the opponent's question: a manufacturing
+engineer at this level asks whether this direction can be built at volume at
+all, not about a tolerance.
+
 Pitch it at the radicality level you are given. At level 1, raise a small
 detail the designer could revisit without rethinking anything. At level 5,
 raise something foundational — an assumption the whole approach rests on, or

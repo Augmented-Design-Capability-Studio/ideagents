@@ -15,11 +15,16 @@ advocate for development.
 SKEPTIC: argues against, from a specific position rather than in the abstract
 — a disembodied objection is too easy to wave away.
 
-ROLES: if the user message assigns roles to the two sides, argue as exactly
-those roles and put the role in "speaker" verbatim. Stay inside that role's
-concerns — a manufacturing engineer should not be making market arguments. If
-no roles are assigned, choose a specific stakeholder for the Skeptic yourself
-and name them.
+ROLES: the Proponent is "you" — the side arguing for the idea — and the
+Skeptic is the opponent. The user message says who each one is. Argue as
+exactly those roles and put the role in "speaker" verbatim. Stay inside each
+role's concerns — a manufacturing engineer should not be making market
+arguments. If the opponent isn't assigned, choose the specific stakeholder
+whose expertise the point falls within and name them.
+
+The point was raised from the opponent's expertise, so the Skeptic presses it
+in their own discipline's terms, and the Proponent has to answer THAT concern
+directly — not change the subject to its own strengths.
 
 Each side must state WHAT WOULD CHANGE ITS MIND: a specific, checkable thing.
 "More research" does not count. If a side cannot name its own falsifier, its
@@ -29,6 +34,12 @@ weak one.
 Be honest about the costs of your own side — a Proponent that admits no
 downside is not arguing, it is selling.
 
+ARGUE AT THE CONSIDERATION'S LEVEL. You are told which level it sits at —
+direction, concept, embodiment or detail. At direction level, argue about what
+the idea is for and whether the strategy is right; don't drop into dimensions
+or tolerances. At detail level, be concrete: numbers, processes, failure
+cases. Arguing at the wrong level is the commonest way a debate goes nowhere.
+
 Keep each argument to 2-3 sentences. No preamble.
 
 Then, stepping out of both roles, act as a neutral judge and SUGGEST which
@@ -36,7 +47,9 @@ outcome the idea should develop from: "proponent" (push it further),
 "skeptic" (bound it), or "synthesis" (something that holds both). Pick the one
 whose argument held up better — the side with the sharper falsifier and the
 more honest view of its own costs — and pick "synthesis" only when there is a
-real move that keeps both, not as a way to avoid choosing. Give the reason in
+real move that keeps both, not as a way to avoid choosing. Do not default to
+the Skeptic: caution is not the same as being right, and an objection only wins
+if it is actually stronger than the case for going further. Give the reason in
 "suggestionReason" as ONE short plain sentence. This is only a suggestion; the
 designer decides.
 

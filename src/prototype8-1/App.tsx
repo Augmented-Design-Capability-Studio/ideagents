@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgentButton } from "../shared/components/AgentButton";
 import { AgentDialog } from "../shared/components/AgentDialog";
 import { useGeminiConnection } from "../shared/hooks/useGeminiConnection";
@@ -8,7 +8,8 @@ import { NodePanel } from "./components/NodePanel";
 import { TreeView } from "./components/TreeView";
 import {
   DEBATER_PAIRS,
-  MAX_AUTOPLAY_PLIES,
+  FUTURE_STEPS,
+  MAX_CONCURRENT_CALLS,
   MAX_CONCURRENT_SKETCHES,
   MAX_RADICALITY,
   MIN_RADICALITY,
@@ -16,8 +17,17 @@ import {
   SAMPLES,
   debaterPair,
 } from "./config";
-import { outcomePreference, pathTo, type NodeMap } from "./tree";
-import type { IdeaNode, Outcome } from "./types";
+import { createLimiter } from "./limit";
+import {
+  futurePicks,
+  isTerminal,
+  nearestSketchedAncestor,
+  outcomePreference,
+  pathTo,
+  wantsAutoSketch,
+  type NodeMap,
+} from "./tree";
+import { OUTCOMES, type IdeaNode, type Outcome } from "./types";
 
 let nodeCounter = 0;
 function nextId(): string {
@@ -44,17 +54,23 @@ export default function App() {
 
   const [startStatus, setStartStatus] = useState<"idle" | "loading" | "error">("idle");
   const [startError, setStartError] = useState<string | null>(null);
-  const [autoplaying, setAutoplaying] = useState(false);
+  // The node futures are currently being played out from, if any.
+  const [playingFrom, setPlayingFrom] = useState<string | null>(null);
 
   const selected = selectedId ? nodes[selectedId] : null;
 
   // Anything in flight anywhere, for the activity bar.
   const busy =
     startStatus === "loading" ||
-    autoplaying ||
+    playingFrom !== null ||
     Object.values(nodes).some(
-      (n) => n.status === "debating" || n.developing !== null || n.imageStatus === "loading"
+      (n) => n.status === "debating" || n.developing.length > 0 || n.imageStatus === "loading"
     );
+
+  // Every develop and debate call goes through this, so a burst of them —
+  // playing out futures fires many at once — queues instead of tripping the
+  // API's rate limit.
+  const limitRef = useRef(createLimiter(MAX_CONCURRENT_CALLS));
 
   const patchNode = (id: string, patch: Partial<IdeaNode>) => {
     setNodes((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev));
@@ -73,13 +89,18 @@ export default function App() {
         apiKey,
         problem.trim(),
         seed.trim(),
-        radicality
+        radicality,
+        pairId
       );
       const id = nextId();
       const root: IdeaNode = {
         id,
         parentId: null,
         depth: 0,
+        level: "direction",
+        stop: null,
+        resumed: false,
+        futureEnd: false,
         fromOutcome: null,
         ideaState: seed.trim(),
         ideaSummary: ideaSummary || seed.trim(),
@@ -91,7 +112,7 @@ export default function App() {
         error: null,
         winner: null,
         childByOutcome: {},
-        developing: null,
+        developing: [],
         note: "",
         image: null,
         imageStatus: "idle",
@@ -111,11 +132,34 @@ export default function App() {
 
   // Debates are generated once and cached on the node — selecting a node you've
   // already visited costs nothing.
-  const ensureDebate = async (id: string, snapshot?: NodeMap): Promise<IdeaNode | null> => {
+  //
+  // A new node's debate starts the moment it's created, and "+" and playing out futures
+  // also ask for it — so calls for a node already being argued share the one
+  // in flight rather than starting a second debate.
+  const debatesInFlight = useRef(new Map<string, Promise<IdeaNode | null>>());
+
+  const ensureDebate = (id: string, snapshot?: NodeMap): Promise<IdeaNode | null> => {
+    const pending = debatesInFlight.current.get(id);
+    if (pending) return pending;
     const map = snapshot ?? nodes;
     const node = map[id];
-    if (!node || node.debate || node.status === "debating") return node ?? null;
+    // A stopped branch isn't argued unless the designer chooses to keep going.
+    if (!node || node.debate || node.status === "debating" || isTerminal(node)) {
+      return Promise.resolve(node ?? null);
+    }
 
+    const promise = runDebateFor(id, map, node).finally(() => {
+      debatesInFlight.current.delete(id);
+    });
+    debatesInFlight.current.set(id, promise);
+    return promise;
+  };
+
+  const runDebateFor = async (
+    id: string,
+    map: NodeMap,
+    node: IdeaNode
+  ): Promise<IdeaNode | null> => {
     const apiKey = getApiKey();
     if (!apiKey) {
       setAgentOpen(true);
@@ -123,13 +167,8 @@ export default function App() {
     }
     patchNode(id, { status: "debating", error: null });
     try {
-      const debate = await runDebate(
-        apiKey,
-        problem.trim(),
-        node,
-        pathTo(map, id),
-        radicality,
-        pairId
+      const debate = await limitRef.current(() =>
+        runDebate(apiKey, problem.trim(), node, pathTo(map, id), radicality, pairId)
       );
       patchNode(id, { debate, status: "ready" });
       return { ...node, debate, status: "ready" };
@@ -145,24 +184,72 @@ export default function App() {
   const focusNode = (id: string) => setFocus({ id, nonce: Date.now() });
 
   // Selecting is free: browsing the tree to read nodes shouldn't spend calls.
-  // The debate fires on the paths where intent is unambiguous — the "+" button
-  // and auto-play — or from the panel's explicit button.
+  // Every node is debated as soon as it's created, so there's nothing to fetch
+  // on select.
   const handleSelect = (id: string) => {
     setSelectedId(id);
+  };
+
+  // Clicking one of a node's output dots: jump to that case's branch if it's
+  // been developed, otherwise develop it.
+  const handlePort = async (nodeId: string, outcome: Outcome) => {
+    const node = nodes[nodeId];
+    if (!node) return;
+    const existing = node.childByOutcome[outcome];
+    if (existing) {
+      setSelectedId(existing);
+      focusNode(existing);
+      return;
+    }
+    if (isTerminal(node) || node.developing.includes(outcome)) return;
+    const child = await handleDevelop(nodeId, outcome);
+    if (child) {
+      setSelectedId(child.id);
+      focusNode(child.id);
+    }
   };
 
   // Develops one outcome into a child node and keeps it. Calling this for a
   // second outcome on the same node does NOT replace the first — both persist,
   // which is what makes changing the winner free. Developing never marks a
   // winner; that's always the designer's explicit call.
-  const handleDevelop = async (
+  //
+  // Like debates, a develop already in flight for the same node and outcome is
+  // shared — a future being played out and a click on the same dot must not
+  // create two children for one outcome.
+  const developsInFlight = useRef(new Map<string, Promise<IdeaNode | null>>());
+
+  const handleDevelop = (
     nodeId: string,
     outcome: Outcome,
     snapshot?: NodeMap
   ): Promise<IdeaNode | null> => {
-    const map = snapshot ?? nodes;
+    const key = `${nodeId}:${outcome}`;
+    const pending = developsInFlight.current.get(key);
+    if (pending) return pending;
+    const promise = developFor(nodeId, outcome, snapshot ?? nodes).finally(() => {
+      developsInFlight.current.delete(key);
+    });
+    developsInFlight.current.set(key, promise);
+    return promise;
+  };
+
+  const setDeveloping = (nodeId: string, outcome: Outcome, on: boolean) => {
+    setNodes((prev) => {
+      const node = prev[nodeId];
+      if (!node) return prev;
+      const rest = node.developing.filter((o) => o !== outcome);
+      return { ...prev, [nodeId]: { ...node, developing: on ? [...rest, outcome] : rest } };
+    });
+  };
+
+  const developFor = async (
+    nodeId: string,
+    outcome: Outcome,
+    map: NodeMap
+  ): Promise<IdeaNode | null> => {
     const node = map[nodeId];
-    if (!node) return null;
+    if (!node || isTerminal(node)) return null;
 
     const existing = node.childByOutcome[outcome];
     if (existing) return map[existing] ?? null;
@@ -176,21 +263,28 @@ export default function App() {
     const withDebate = node.debate ? node : await ensureDebate(nodeId, map);
     if (!withDebate?.debate) return null;
 
-    patchNode(nodeId, { developing: outcome });
+    setDeveloping(nodeId, outcome, true);
     try {
-      const result = await developOutcome(
-        apiKey,
-        problem.trim(),
-        withDebate,
-        pathTo(map, nodeId),
-        outcome,
-        radicality
+      const result = await limitRef.current(() =>
+        developOutcome(
+          apiKey,
+          problem.trim(),
+          withDebate,
+          pathTo(map, nodeId),
+          outcome,
+          radicality,
+          pairId
+        )
       );
       const childId = nextId();
       const child: IdeaNode = {
         id: childId,
         parentId: nodeId,
         depth: node.depth + 1,
+        level: result.level,
+        stop: result.stop,
+        resumed: false,
+        futureEnd: false,
         fromOutcome: outcome,
         ideaState: result.ideaState,
         ideaSummary: result.ideaSummary || result.ideaState,
@@ -202,7 +296,7 @@ export default function App() {
         error: null,
         winner: null,
         childByOutcome: {},
-        developing: null,
+        developing: [],
         note: "",
         image: null,
         imageStatus: "idle",
@@ -213,17 +307,19 @@ export default function App() {
         ...prev,
         [nodeId]: {
           ...prev[nodeId],
-          developing: null,
+          developing: prev[nodeId].developing.filter((o) => o !== outcome),
           childByOutcome: { ...prev[nodeId].childByOutcome, [outcome]: childId },
         },
         [childId]: child,
       }));
+      // Argue the new node straight away, so it's ready to rule on by the time
+      // the designer gets to it. A node that stopped its branch is skipped
+      // (ensureDebate checks), which saves the call.
+      void ensureDebate(childId, { ...map, [childId]: child });
       return child;
     } catch (err) {
-      patchNode(nodeId, {
-        developing: null,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      setDeveloping(nodeId, outcome, false);
+      patchNode(nodeId, { error: err instanceof Error ? err.message : String(err) });
       return null;
     }
   };
@@ -232,7 +328,7 @@ export default function App() {
   // winner if none is marked yet — or go to it if it already exists.
   const handleDevelopNext = async (nodeId: string) => {
     const node = nodes[nodeId];
-    if (!node) return;
+    if (!node || isTerminal(node)) return;
     const withDebate = node.debate ? node : await ensureDebate(nodeId);
     if (!withDebate?.debate) return;
 
@@ -249,12 +345,11 @@ export default function App() {
     if (child) {
       setSelectedId(child.id);
       focusNode(child.id);
-      void ensureDebate(child.id);
     }
   };
 
-  // Sketching is always explicit — it's an extra call, and not every node is
-  // worth a picture.
+  // Sketches one node. It builds on the nearest sketched ancestor rather than
+  // the direct parent, since with sparse sketching the parent usually has none.
   const handleVisualize = async (nodeId: string) => {
     const node = nodes[nodeId];
     if (!node || node.imageStatus === "loading") return;
@@ -265,8 +360,8 @@ export default function App() {
     }
     patchNode(nodeId, { imageStatus: "loading", imageError: null });
     try {
-      const parentImage = node.parentId ? nodes[node.parentId]?.image ?? null : null;
-      const image = await generateSketch(apiKey, problem.trim(), node, parentImage);
+      const reference = nearestSketchedAncestor(nodes, node)?.image ?? null;
+      const image = await generateSketch(apiKey, problem.trim(), node, reference);
       patchNode(nodeId, { image, imageStatus: "idle" });
     } catch (err) {
       patchNode(nodeId, {
@@ -276,14 +371,15 @@ export default function App() {
     }
   };
 
-  // Draws any node that doesn't have a sketch yet. This runs entirely beside
-  // the develop/debate pipeline — nodes and their arguments never wait on a
-  // drawing — and several drawings can be in flight at once.
+  // Draws the root and the end of each played-out future — the points worth
+  // comparing — and leaves every other node to an explicit request. This runs
+  // entirely beside the develop/debate pipeline, so nodes never wait on a
+  // drawing, and several drawings can be in flight at once.
   //
-  // The one ordering rule: a child's sketch is conditioned on its parent's
-  // image to keep a branch visually continuous, so a node only becomes
-  // eligible once its parent has settled (has an image, or failed to get one —
-  // otherwise a failed parent would strand its whole subtree).
+  // The one ordering rule: a sketch builds on the nearest sketched ancestor,
+  // so a node only becomes eligible once every ancestor that is also due a
+  // sketch has settled (has an image, or failed to get one — otherwise a
+  // failed ancestor would strand everything below it).
   useEffect(() => {
     if (!autoSketch) return;
     const all = Object.values(nodes);
@@ -291,13 +387,20 @@ export default function App() {
     const slots = MAX_CONCURRENT_SKETCHES - inFlight;
     if (slots <= 0) return;
 
+    const settled = (n: IdeaNode) => Boolean(n.image) || Boolean(n.imageError);
+    const ancestorsSettled = (n: IdeaNode) => {
+      let current = n.parentId ? nodes[n.parentId] : undefined;
+      while (current) {
+        if (wantsAutoSketch(current) && !settled(current)) return false;
+        current = current.parentId ? nodes[current.parentId] : undefined;
+      }
+      return true;
+    };
+
     const ready = all
+      .filter(wantsAutoSketch)
       .filter((n) => !n.image && n.imageStatus === "idle" && !n.imageError)
-      .filter((n) => {
-        if (!n.parentId) return true;
-        const parent = nodes[n.parentId];
-        return !parent || Boolean(parent.image) || Boolean(parent.imageError);
-      })
+      .filter(ancestorsSettled)
       .sort((a, b) => a.depth - b.depth)
       .slice(0, slots);
 
@@ -307,65 +410,82 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, autoSketch]);
 
-  const handleAutoplay = async () => {
-    if (!selectedId) return;
-    setAutoplaying(true);
+  // Plays out alternate futures from a node. All three of its outcomes are
+  // developed, then every new node branches into FUTURE_BRANCHING outcomes —
+  // its suggested winner and a contrasting one — for FUTURE_STEPS steps in
+  // total, or until a branch stops. So both sides of each argument are played
+  // forward, rather than one line of whichever side the judge favoured.
+  //
+  // Every node is developed and debated on its own, exactly as if the designer
+  // had clicked through — nothing is written ahead knowing where the story
+  // ends. Branches run in parallel (the call limiter queues the excess), and
+  // nodes that already exist are reused rather than regenerated.
+  const handlePlayFutures = async (fromId: string) => {
+    const start = nodes[fromId];
+    if (!start || isTerminal(start) || playingFrom) return;
+    setPlayingFrom(fromId);
     try {
-      // A local mirror of the tree. State updates from this loop don't land in
-      // `nodes` until React re-renders, so reading `nodes` for the node we just
-      // created would miss it — which is why this used to stop after one ply.
-      let map: NodeMap = nodes;
-      let currentId: string | null = selectedId;
-
-      for (let ply = 0; ply < MAX_AUTOPLAY_PLIES && currentId; ply++) {
-        let node: IdeaNode | undefined = map[currentId];
-        if (!node) break;
-
-        if (!node.debate) {
-          const debated = await ensureDebate(currentId, map);
-          if (!debated?.debate) break;
-          node = debated;
-          map = { ...map, [currentId]: debated };
-        }
-
-        // Take the most preferred outcome (marked winner, then suggested
-        // winner) that hasn't been developed yet, so every ply CREATES a node
-        // from where you are. Taking the top pick outright would just walk down
-        // branches that already exist, which made auto-play look like it ran
-        // from the frontier rather than from the node you selected. If all
-        // three exist there is nothing to create, so it follows the top pick.
-        // It never marks a winner — that stays the designer's call.
-        const ranked = outcomePreference(node);
-        const pick: Outcome = ranked.find((o) => !node.childByOutcome[o]) ?? ranked[0];
-        const existingId: string | undefined = node.childByOutcome[pick];
-        let child: IdeaNode | null = existingId ? map[existingId] ?? null : null;
-
-        if (!child) {
-          child = await handleDevelop(currentId, pick, map);
-          if (!child) break;
-          map = {
-            ...map,
-            [currentId]: {
-              ...node,
-              childByOutcome: { ...node.childByOutcome, [pick]: child.id },
-            },
-            [child.id]: child,
-          };
-        }
-
-        setSelectedId(child.id);
-        focusNode(child.id);
-
-        // Debate the new node now so the next ply can rule on it — and so the
-        // tree is left with every node argued rather than a bare leaf.
-        const debatedChild = await ensureDebate(child.id, map);
-        if (debatedChild) map = { ...map, [child.id]: debatedChild };
-
-        currentId = child.id;
-      }
+      const debated = start.debate ? start : await ensureDebate(fromId);
+      if (!debated?.debate) return;
+      const base: NodeMap = { ...nodes, [fromId]: debated };
+      await Promise.all(
+        OUTCOMES.map((outcome) => playOutFrom(base, fromId, outcome, FUTURE_STEPS, true))
+      );
     } finally {
-      setAutoplaying(false);
+      setPlayingFrom(null);
     }
+  };
+
+  // Develops one outcome, then recurses into its picks. `mainLine` follows the
+  // top pick at every step; only where that line ends is marked as a future's
+  // end (and so sketched automatically) — sketching every leaf would cost an
+  // image per leaf.
+  const playOutFrom = async (
+    base: NodeMap,
+    parentId: string,
+    outcome: Outcome,
+    stepsLeft: number,
+    mainLine: boolean
+  ): Promise<void> => {
+    // A local mirror of this branch of the tree: state updates don't land in
+    // `nodes` until React re-renders, so each step reads from here.
+    let map = base;
+    const parent = map[parentId];
+    const existingId = parent.childByOutcome[outcome];
+    let child = existingId ? map[existingId] ?? null : null;
+    if (!child) {
+      child = await handleDevelop(parentId, outcome, map);
+      if (!child) return;
+      map = {
+        ...map,
+        [parentId]: { ...parent, childByOutcome: { ...parent.childByOutcome, [outcome]: child.id } },
+        [child.id]: child,
+      };
+    }
+
+    const markEnd = () => {
+      if (mainLine && child) patchNode(child.id, { futureEnd: true });
+    };
+    if (stepsLeft <= 1 || isTerminal(child)) return markEnd();
+
+    const debated = child.debate ? child : await ensureDebate(child.id, map);
+    if (!debated?.debate) return markEnd();
+    map = { ...map, [child.id]: debated };
+
+    const picks = futurePicks(debated);
+    await Promise.all(
+      picks.map((pick, i) => playOutFrom(map, debated.id, pick, stepsLeft - 1, mainLine && i === 0))
+    );
+  };
+
+  // Overrides a stop: the branch carries on, starting with the debate it
+  // skipped.
+  const handleResume = (id: string) => {
+    const node = nodes[id];
+    if (!node) return;
+    const resumed = { ...node, resumed: true };
+    patchNode(id, { resumed: true });
+    void ensureDebate(id, { ...nodes, [id]: resumed });
   };
 
   const loadSample = (label: string) => {
@@ -441,7 +561,7 @@ export default function App() {
               />
             </label>
             <p className="p8-hint">
-              Shifts how deep each consideration cuts and how far the Proponent pushes.
+              Shifts how deep each consideration cuts and how far your side pushes.
             </p>
           </div>
 
@@ -456,12 +576,24 @@ export default function App() {
                 ))}
               </select>
             </label>
+            <div className="p8-sides">
+              <p>
+                <strong>You</strong> <span className="p8-hint">(arguing for the idea)</span> —{" "}
+                {pairId === "auto"
+                  ? "a perspective the model chooses."
+                  : `${debaterPair(pairId).pro.role}, who ${debaterPair(pairId).pro.stance}.`}
+              </p>
+              <p>
+                <strong>Opponent</strong> <span className="p8-hint">(challenging it)</span> —{" "}
+                {pairId === "auto"
+                  ? "a stakeholder the model picks for each point."
+                  : `${debaterPair(pairId).con.role}, who ${debaterPair(pairId).con.stance}.`}
+              </p>
+            </div>
             <p className="p8-hint">
-              {pairId === "auto"
-                ? "The model picks a stakeholder for the Skeptic each time."
-                : `${debaterPair(pairId).con.role} ${debaterPair(pairId).con.stance}.`}{" "}
-              Switch pairs partway through to re-argue a later node from a different lens and
-              compare the two branches.
+              Each point up for debate is raised from inside the opponent's expertise. Switch
+              pairs partway through to re-argue a later node from a different lens and compare the
+              two branches.
             </p>
             <label className="p8-checkbox">
               <input
@@ -469,9 +601,10 @@ export default function App() {
                 checked={autoSketch}
                 onChange={(e) => setAutoSketch(e.target.checked)}
               />
-              Sketch every node automatically
+              Sketch the root and the end of each future automatically
               <span className="p8-hint">
-                One extra call per node. Nodes appear straight away and the drawing fills in.
+                One image call each. Any other node can be sketched on demand from its picture
+                button.
               </span>
             </label>
           </div>
@@ -489,17 +622,23 @@ export default function App() {
             selectedId={selectedId}
             focus={focus}
             onSelect={handleSelect}
+            onClearSelection={() => setSelectedId(null)}
             onDevelopNext={(id) => void handleDevelopNext(id)}
+            onPort={(id, outcome) => void handlePort(id, outcome)}
             onVisualize={(id) => void handleVisualize(id)}
-            onAutoplay={() => void handleAutoplay()}
-            autoplaying={autoplaying}
-            canAutoplay={Boolean(selectedId)}
+            onPlayFutures={() => selectedId && void handlePlayFutures(selectedId)}
+            playing={playingFrom !== null}
+            canPlay={selected ? !isTerminal(selected) : false}
           />
 
           {selected && (
             <NodePanel
               nodes={nodes}
               node={selected}
+              path={pathTo(nodes, selected.id)}
+              playing={playingFrom !== null}
+              onPlayFutures={() => void handlePlayFutures(selected.id)}
+              onResume={() => handleResume(selected.id)}
               onWinnerChange={(winner) => patchNode(selected.id, { winner })}
               onDevelop={(outcome) => void handleDevelop(selected.id, outcome)}
               onGoTo={(id) => {

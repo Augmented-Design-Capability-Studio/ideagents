@@ -103,6 +103,16 @@
   max-width: 24rem;
 }
 
+/* Who's on which side, spelled out under the pair picker. */
+.p8-sides {
+  font-size: 0.8rem;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.p8-sides p {
+  margin: 0.15rem 0;
+}
+
 .p8-radicality {
   display: flex;
   flex-direction: column;
@@ -164,7 +174,7 @@
   padding: 0.15rem 0.5rem;
 }
 
-/* Separates the action (auto-play) from the view controls beside it. */
+/* Separates the action (play out futures) from the view controls beside it. */
 .p8-action-divider {
   width: 1px;
   height: 1rem;
@@ -197,26 +207,35 @@
   cursor: grabbing;
 }
 
+/* The legend: one row per thing it explains, with a drawn sample of each. */
 .p8-canvas-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-top: 0.4rem;
-}
-
-.p8-canvas-footer .p8-hint {
-  margin: 0;
-}
-
-.p8-legend {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
   font-size: 0.72rem;
   color: #555;
+}
+
+.p8-legend-row {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+}
+
+.p8-legend-label {
+  flex: none;
+  width: 4.5rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #888;
 }
 
 .p8-legend-item {
@@ -224,6 +243,48 @@
   align-items: center;
   gap: 0.3rem;
   white-space: nowrap;
+}
+
+.p8-legend-item svg {
+  flex: none;
+}
+
+.p8-legend-item kbd {
+  font: inherit;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid #ddd;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+}
+
+/* A miniature stopped node: tinted card, thick border, and the symbol. */
+.p8-legend-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  border: 2px solid var(--stop);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--stop) 14%, #fff);
+  color: var(--stop);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  flex: none;
+}
+
+/* The selected node's path from the root: a soft band under the edges. */
+.p8-trace {
+  fill: none;
+  stroke: #1a1a1a;
+  stroke-opacity: 0.09;
+  stroke-width: 10;
+  stroke-linecap: round;
 }
 
 /* A line, not a dot — it stands for an edge. */
@@ -298,6 +359,37 @@
 
 .p8-node-selected .p8-node-title {
   fill: #000;
+}
+
+/* A stopped branch: the whole card takes a wash of the stop's colour with a
+   thick border in the full colour, so settled, dead-end and drifted branches
+   can be told apart from across the canvas. --stop is set per node. CSS
+   rather than SVG attributes, since the .p8-node-box rule above would win
+   over a fill attribute anyway. */
+.p8-node-stopped .p8-node-box {
+  fill: color-mix(in srgb, var(--stop) 14%, #fff);
+  stroke: var(--stop);
+  stroke-width: 3;
+}
+
+.p8-node-stopped.p8-node-selected .p8-node-box {
+  fill: color-mix(in srgb, var(--stop) 18%, #fff);
+}
+
+.p8-stop-banner {
+  fill: var(--stop);
+}
+
+.p8-stop-banner-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: #fff;
+}
+
+/* Dead ends recede a little, so the eye lands on settled endings first. */
+.p8-stop-dead_end {
+  opacity: 0.72;
 }
 
 /* An abandoned branch is kept, not deleted — dimmed but still clickable and
@@ -502,11 +594,6 @@
   fill: #1a1a1a;
 }
 
-.p8-node-kind {
-  font-size: 9.5px;
-  fill: #888;
-}
-
 .p8-add-circle,
 .p8-icon-circle {
   fill: #fff;
@@ -563,11 +650,38 @@
 
 /* Fill comes from the outcome colour, set per element. */
 .p8-port {
-  stroke-width: 1.5;
+  cursor: pointer;
 }
 
-.p8-port-open {
-  stroke-opacity: 0.55;
+.p8-port-hit {
+  fill: transparent;
+}
+
+.p8-port-dot {
+  stroke-width: 2;
+  /* Safe to transform: the circle carries no transform attribute of its own. */
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.12s ease-out;
+}
+
+.p8-port-open .p8-port-dot {
+  stroke-opacity: 0.7;
+}
+
+.p8-port:hover .p8-port-dot {
+  transform: scale(1.25);
+  stroke-opacity: 1;
+}
+
+.p8-port:active .p8-port-dot {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p8-port-dot {
+    transition: none;
+  }
 }
 
 .p8-edge-label {
@@ -600,7 +714,7 @@
 }
 
 .p8-node-heading {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   margin: 0 0 0.35rem;
 }
 
@@ -610,20 +724,10 @@
   color: #444;
 }
 
-.p8-kind-badge {
-  display: inline-block;
-  font-size: 0.68rem;
-  font-weight: 600;
-  background: #eef4ff;
-  color: #2a5caa;
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  margin: 0 0 0.4rem;
-}
-
 .p8-consideration {
-  font-size: 0.9rem;
-  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  margin: 0 0 0.6rem;
 }
 
 .p8-idea-state {
@@ -715,16 +819,22 @@
   gap: 0.4rem;
 }
 
+/* Each card carries its outcome's canvas colour in --outcome. */
 .p8-outcome {
   border: 1px solid #eee;
+  border-left: 3px solid var(--outcome, #eee);
   border-radius: 4px;
   padding: 0.45rem 0.55rem;
   font-size: 0.8rem;
 }
 
 .p8-outcome-current {
-  border-color: #4a90e2;
-  background: #f7faff;
+  border-color: var(--outcome);
+  background: color-mix(in srgb, var(--outcome) 7%, #fff);
+}
+
+.p8-outcome-head strong {
+  color: var(--outcome);
 }
 
 .p8-outcome-head {
@@ -772,14 +882,19 @@
 }
 
 .p8-outcome .p8-winner-on {
-  background: #4a90e2;
-  border-color: #4a90e2;
+  background: var(--outcome);
+  border-color: var(--outcome);
   color: #fff;
   font-weight: 600;
 }
 
 .p8-outcome .p8-winner-on:hover:not(:disabled) {
-  background: #3a7bc8;
+  background: var(--outcome);
+  filter: brightness(0.9);
+}
+
+.p8-outcome .p8-live-tag {
+  background: var(--outcome);
 }
 
 .p8-suggestion {
@@ -795,4 +910,119 @@
 .p8-outcome button {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
+}
+
+/* The node's level, under the panel header. */
+.p8-level {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0 0 0.5rem;
+}
+
+.p8-level strong {
+  color: #333;
+}
+
+/* Why a branch stopped. --stop carries the stop's colour. */
+.p8-stop {
+  border: 1px solid var(--stop);
+  border-left-width: 3px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--stop) 6%, #fff);
+  padding: 0.45rem 0.6rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+}
+
+.p8-stop strong {
+  color: var(--stop);
+}
+
+.p8-stop p {
+  margin: 0.2rem 0 0.4rem;
+}
+
+.p8-stop button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+}
+
+/* "How it got here": the path from the root, one step per line. */
+.p8-trace-list {
+  margin: 0.75rem 0;
+  font-size: 0.78rem;
+}
+
+.p8-trace-list summary {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #444;
+  cursor: pointer;
+}
+
+.p8-trace-list ol {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0 0 0 0.6rem;
+  border-left: 2px solid #e5e5e5;
+}
+
+.p8-trace-list li {
+  margin: 0 0 0.35rem;
+}
+
+.p8-trace-move {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.p8-trace-step {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.4rem;
+  border-color: transparent;
+  background: transparent;
+}
+
+.p8-trace-step:hover:not(:disabled) {
+  border-color: #ddd;
+}
+
+.p8-trace-current .p8-trace-step {
+  font-weight: 600;
+  background: #f5f5f5;
+}
+
+.p8-trace-level {
+  display: inline-block;
+  min-width: 5.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.p8-futures {
+  margin-top: 0.6rem;
+}
+
+.p8-futures .p8-hint {
+  margin: 0.3rem 0 0;
+}
+
+/* Nodes and edges outside the selected node's lineage. Declared last so it
+   wins over the abandoned and dead-end dimming. */
+.p8-faded {
+  opacity: 0.28;
+  transition: opacity 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p8-faded {
+    transition: none;
+  }
 }

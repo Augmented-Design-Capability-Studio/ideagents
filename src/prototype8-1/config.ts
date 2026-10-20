@@ -13,7 +13,30 @@ export const RADICALITY_LABELS: Record<number, string> = {
   5: "Radical — argue the most far-reaching reading",
 };
 
-export const MAX_AUTOPLAY_PLIES = 3;
+// Playing out futures from a node develops all three of its outcomes, then
+// keeps branching for this many steps in total. Every later node develops
+// FUTURE_BRANCHING outcomes (its suggested winner plus a contrasting one), so
+// a future never collapses into a single line of one side winning.
+export const FUTURE_STEPS = 3;
+export const FUTURE_BRANCHING = 2;
+
+// Nodes one "play out futures" can create: 3 at the first step, then
+// ×FUTURE_BRANCHING per step. Each is developed and debated (2 calls).
+export const FUTURE_NODES = Array.from(
+  { length: FUTURE_STEPS },
+  (_, step) => 3 * FUTURE_BRANCHING ** step
+).reduce((a, b) => a + b, 0);
+
+// Model calls allowed in flight at once, across the whole prototype.
+export const MAX_CONCURRENT_CALLS = 4;
+
+// A level is never skipped (a branch moves down at most one level per node)
+// and can hold at most this many considerations on a path before the branch
+// is made to move down, so it can't stall at the broad level forever.
+export const MAX_PER_LEVEL = 3;
+
+// Hard cap on how deep any branch goes, whatever the model says.
+export const MAX_DEPTH = 10;
 
 // Sketches run beside the develop/debate pipeline, several at a time. Kept
 // low because image calls are the slowest and most rate-limited of the three.
