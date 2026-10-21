@@ -17,6 +17,7 @@ import {
   STOP_LABELS,
   STOP_SYMBOLS,
   type Outcome,
+  type StopReason,
 } from "../types";
 
 interface Props {
@@ -101,7 +102,18 @@ const PORT_X: Record<Outcome, number> = {
   proponent: NODE_W / 2 + PORT_SPACING,
 };
 
-const MIN_ZOOM = 0.3;
+// The overview: the same tree with every node condensed to a small card (its
+// level, a one-line summary, and how it ended) and packed far more tightly,
+// so a large tree fits on screen and its shape is readable at a glance.
+const C_W = 140;
+const C_H = 40;
+const C_CHARS = 24;
+const C_X_SPACING = C_W + 12;
+const C_ROW_GAP = 30;
+const C_PORT_SPACING = 26;
+
+// Low enough for the overview to fit a big tree in view.
+const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 2.5;
 
 // Text is shown in full rather than truncated, so it wraps — which means node
@@ -127,6 +139,81 @@ function wrap(text: string, maxChars: number, maxLines: number): string[] {
     lines[maxLines - 1] = `${lines[maxLines - 1].slice(0, maxChars - 1)}…`;
   }
   return lines.length > 0 ? lines : [text];
+}
+
+// One node in the overview: a small card with the level, a one-line summary,
+// and — for a stopped branch — its symbol. Hover shows the full text.
+function CompactNode({
+  x,
+  y,
+  level,
+  summary,
+  title,
+  fromColor,
+  stopped,
+  selected,
+  className,
+  onClick,
+  onOpen,
+}: {
+  x: number;
+  y: number;
+  level: string;
+  summary: string;
+  title: string;
+  fromColor: string;
+  stopped: { reason: StopReason; note: string } | null;
+  selected: boolean;
+  className: string;
+  onClick: (e: React.MouseEvent) => void;
+  onOpen: () => void;
+}) {
+  const line = summary.length > C_CHARS ? `${summary.slice(0, C_CHARS - 1)}…` : summary;
+  return (
+    <g
+      transform={`translate(${x}, ${y})`}
+      className={`p8-node p8-compact ${selected ? "p8-node-selected" : ""} ${className}`}
+      style={stopped ? ({ "--stop": STOP_COLORS[stopped.reason] } as CSSProperties) : undefined}
+      onClick={onClick}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+    >
+      <title>
+        {summary}
+        {stopped
+          ? `\n${STOP_SYMBOLS[stopped.reason]} ${STOP_LABELS[stopped.reason]}${
+              stopped.note ? ` — ${stopped.note}` : ""
+            }`
+          : `\nUp for debate: ${title}`}
+        {"\nDouble-click to open in the detailed view"}
+      </title>
+      {selected && (
+        <rect x={-4} y={-4} width={C_W + 8} height={C_H + 8} rx={7} className="p8-node-halo" />
+      )}
+      <rect
+        width={C_W}
+        height={C_H}
+        rx={5}
+        className="p8-node-box"
+        stroke={selected ? "#1a1a1a" : "#ccc"}
+        strokeWidth={selected ? 2 : 1}
+      />
+      <rect width={C_W} height={3} rx={1.5} fill={fromColor} />
+      <text x={8} y={14} className="p8-node-section">
+        {level.toUpperCase()}
+      </text>
+      {stopped && (
+        <text x={C_W - 8} y={15} textAnchor="end" className="p8-compact-symbol">
+          {STOP_SYMBOLS[stopped.reason]}
+        </text>
+      )}
+      <text x={8} y={30} className="p8-compact-summary">
+        {line}
+      </text>
+    </g>
+  );
 }
 
 export function TreeView({
@@ -155,6 +242,8 @@ export function TreeView({
   // Nudges the designer has applied by dragging nodes. They sit on top of the
   // computed layout, so the tree structure is untouched — edges just follow.
   const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({});
+
+  const [overview, setOverview] = useState(false);
 
   // Heights must be known before layout, since rows are sized to their tallest
   // node.
@@ -190,8 +279,29 @@ export function TreeView({
 
   const { positions } = layoutTree(nodes, rootId, heights);
 
-  // Laid-out position plus any manual nudge.
+  // The overview's own layout. Computed alongside the detailed one rather than
+  // instead of it, so nudges (which belong to the detailed layout) survive a
+  // trip to the overview and back.
+  const compactHeights: Record<string, number> = {};
+  for (const id of Object.keys(nodes)) compactHeights[id] = C_H;
+  const { positions: compactPositions } = layoutTree(nodes, rootId, compactHeights, {
+    x: C_X_SPACING,
+    rowGap: C_ROW_GAP,
+  });
+
+  // Geometry for whichever view is showing.
+  const W = overview ? C_W : NODE_W;
+  const H = (id: string) => (overview ? C_H : heights[id]);
+  const portX = (o: Outcome | null) =>
+    o === null
+      ? W / 2
+      : overview
+        ? C_W / 2 + (OUTCOMES.indexOf(o) - 1) * C_PORT_SPACING
+        : PORT_X[o];
+
+  // Laid-out position, plus any manual nudge in the detailed view.
   const at = (id: string): { x: number; y: number } => {
+    if (overview) return compactPositions[id];
     const base = positions[id];
     const off = offsets[id];
     return off ? { x: base.x + off.x, y: base.y + off.y } : base;
@@ -227,6 +337,8 @@ export function TreeView({
   // the callback was created.
   const rootPosRef = useRef<{ x: number; y: number } | null>(null);
   rootPosRef.current = rootId ? positions[rootId] ?? null : null;
+  const compactRef = useRef(compactPositions);
+  compactRef.current = compactPositions;
 
   // Also drops any manual node nudges, so there's always a way back to the
   // clean laid-out tree.
@@ -236,6 +348,31 @@ export function TreeView({
     const root = rootPosRef.current;
     if (!container || !root) return;
     setView({ x: container.clientWidth / 2 - (root.x + NODE_W / 2), y: 28, k: 1 });
+  }, []);
+
+  // The overview's recenter: fit the whole tree in view (never above 100%).
+  const fitAll = useCallback(() => {
+    const container = containerRef.current;
+    const all = Object.values(compactRef.current);
+    if (!container || all.length === 0) return;
+    const minX = Math.min(...all.map((p) => p.x));
+    const maxX = Math.max(...all.map((p) => p.x)) + C_W;
+    const minY = Math.min(...all.map((p) => p.y));
+    const maxY = Math.max(...all.map((p) => p.y)) + C_H;
+    const pad = 32;
+    const k = Math.max(
+      MIN_ZOOM,
+      Math.min(
+        1,
+        (container.clientWidth - pad * 2) / (maxX - minX),
+        (container.clientHeight - pad * 2) / (maxY - minY)
+      )
+    );
+    setView({
+      k,
+      x: (container.clientWidth - (maxX - minX) * k) / 2 - minX * k,
+      y: pad - minY * k,
+    });
   }, []);
 
   // Zoom about a fixed screen point: the content under that point stays put.
@@ -274,12 +411,11 @@ export function TreeView({
   useEffect(() => {
     if (!focus) return;
     const container = containerRef.current;
-    const pos = positions[focus.id];
-    if (!container || !pos) return;
+    if (!container || !positions[focus.id]) return;
 
-    const off = offsets[focus.id] ?? { x: 0, y: 0 };
-    const cx = pos.x + off.x + NODE_W / 2;
-    const cy = pos.y + off.y + (heights[focus.id] ?? 150) / 2;
+    const pos = at(focus.id);
+    const cx = pos.x + W / 2;
+    const cy = pos.y + (H(focus.id) ?? 150) / 2;
 
     const from = { ...view };
     const to = {
@@ -315,8 +451,34 @@ export function TreeView({
   // Centre on the root when a new game starts — not on every expansion, which
   // would yank the canvas back while the designer is exploring.
   useLayoutEffect(() => {
+    setOverview(false);
     resetView();
   }, [rootId, resetView]);
+
+  // Switching views: the overview fits the whole tree; the detailed view
+  // centres on the selected node at full size (or on the root).
+  const firstModeRef = useRef(true);
+  useLayoutEffect(() => {
+    if (firstModeRef.current) {
+      firstModeRef.current = false;
+      return;
+    }
+    if (overview) {
+      fitAll();
+      return;
+    }
+    const container = containerRef.current;
+    const target = selectedId && positions[selectedId] ? selectedId : rootId;
+    if (!container || !target) return;
+    const base = positions[target];
+    const off = offsets[target] ?? { x: 0, y: 0 };
+    setView({
+      k: 1,
+      x: container.clientWidth / 2 - (base.x + off.x + NODE_W / 2),
+      y: container.clientHeight / 2 - (base.y + off.y + heights[target] / 2),
+    });
+    // Keyed on the view switch only.
+  }, [overview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!rootId) return null;
 
@@ -415,6 +577,23 @@ export function TreeView({
             {playing ? "Playing out…" : "Play out futures"}
           </button>
           <span className="p8-action-divider" aria-hidden="true" />
+          <div className="p8-view-toggle" role="group" aria-label="View">
+            <button
+              className={!overview ? "p8-view-on" : ""}
+              aria-pressed={!overview}
+              onClick={() => setOverview(false)}
+            >
+              Detail
+            </button>
+            <button
+              className={overview ? "p8-view-on" : ""}
+              aria-pressed={overview}
+              onClick={() => setOverview(true)}
+              title="Condense every node and pack the tree tightly to see its whole shape"
+            >
+              Overview
+            </button>
+          </div>
           <button onClick={() => zoomFromButton(1 / 1.25)} title="Zoom out">
             −
           </button>
@@ -422,8 +601,15 @@ export function TreeView({
           <button onClick={() => zoomFromButton(1.25)} title="Zoom in">
             +
           </button>
-          <button onClick={resetView} title="Recenter the view and undo any nodes you have dragged">
-            Recenter
+          <button
+            onClick={overview ? fitAll : resetView}
+            title={
+              overview
+                ? "Fit the whole tree in view"
+                : "Recenter the view and undo any nodes you have dragged"
+            }
+          >
+            {overview ? "Fit" : "Recenter"}
           </button>
         </div>
       </div>
@@ -458,15 +644,15 @@ export function TreeView({
               const parent = nodes[node.parentId];
               const from = at(parent.id);
               const to = at(node.id);
-              const x1 = from.x + (node.fromOutcome ? PORT_X[node.fromOutcome] : NODE_W / 2);
-              const y1 = from.y + heights[parent.id];
-              const x2 = to.x + NODE_W / 2;
+              const x1 = from.x + portX(node.fromOutcome);
+              const y1 = from.y + H(parent.id);
+              const x2 = to.x + W / 2;
               const midY = (y1 + to.y) / 2;
               return (
                 <path
                   key={`trace-${node.id}`}
                   d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${to.y}`}
-                  className="p8-trace"
+                  className={overview ? "p8-trace p8-trace-compact" : "p8-trace"}
                 />
               );
             })}
@@ -483,9 +669,9 @@ export function TreeView({
                 // read as plain solid edges.
                 const ruledOut = hasWinner && !isActive;
                 const color = child.fromOutcome ? OUTCOME_COLORS[child.fromOutcome] : "#aaa";
-                const x1 = from.x + (child.fromOutcome ? PORT_X[child.fromOutcome] : NODE_W / 2);
-                const y1 = from.y + heights[node.id];
-                const x2 = to.x + NODE_W / 2;
+                const x1 = from.x + portX(child.fromOutcome);
+                const y1 = from.y + H(node.id);
+                const x2 = to.x + W / 2;
                 const y2 = to.y;
                 const midY = (y1 + y2) / 2;
                 return (
@@ -499,23 +685,26 @@ export function TreeView({
                       d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
                       fill="none"
                       stroke={color}
-                      strokeWidth={isActive ? 3 : 1.75}
+                      strokeWidth={overview ? (isActive ? 2.5 : 1.25) : isActive ? 3 : 1.75}
                       strokeOpacity={ruledOut ? 0.4 : 1}
                       strokeDasharray={ruledOut ? "4 3" : undefined}
                     />
-                    <text
-                      x={x2}
-                      y={y2 - 8}
-                      textAnchor="middle"
-                      className="p8-edge-label"
-                      fill={color}
-                      fillOpacity={ruledOut ? 0.5 : 1}
-                    >
-                      {isActive ? "★ " : ""}
-                      {child.fromOutcome ? OUTCOME_LABELS[child.fromOutcome] : ""}
-                      {/* Moving down a level is marked where it happens. */}
-                      {child.level !== node.level ? ` · ↓ ${LEVEL_LABELS[child.level]}` : ""}
-                    </text>
+                    {/* The overview drops edge labels; colour and weight carry it. */}
+                    {!overview && (
+                      <text
+                        x={x2}
+                        y={y2 - 8}
+                        textAnchor="middle"
+                        className="p8-edge-label"
+                        fill={color}
+                        fillOpacity={ruledOut ? 0.5 : 1}
+                      >
+                        {isActive ? "★ " : ""}
+                        {child.fromOutcome ? OUTCOME_LABELS[child.fromOutcome] : ""}
+                        {/* Moving down a level is marked where it happens. */}
+                        {child.level !== node.level ? ` · ↓ ${LEVEL_LABELS[child.level]}` : ""}
+                      </text>
+                    )}
                   </g>
                 );
               });
@@ -538,6 +727,30 @@ export function TreeView({
                 node.developing.length > 0 ||
                 node.imageStatus === "loading";
               const stopped = isTerminal(node) && node.stop ? node.stop : null;
+
+              if (overview) {
+                return (
+                  <CompactNode
+                    key={node.id}
+                    x={pos.x}
+                    y={pos.y}
+                    level={LEVEL_LABELS[node.level]}
+                    summary={node.ideaSummary || node.ideaState}
+                    title={node.consideration.title}
+                    fromColor={node.fromOutcome ? OUTCOME_COLORS[node.fromOutcome] : "#ccc"}
+                    stopped={stopped}
+                    selected={selected}
+                    className={`${abandoned ? "p8-node-abandoned" : ""} ${busy ? "p8-node-busy" : ""} ${
+                      stopped ? `p8-node-stopped p8-stop-${stopped.reason}` : ""
+                    } ${outsideLineage(node.id) ? "p8-faded" : ""}`}
+                    onClick={clickIfNotDragging(() => onSelect(node.id))}
+                    onOpen={() => {
+                      onSelect(node.id);
+                      setOverview(false);
+                    }}
+                  />
+                );
+              }
 
               return (
                 <g

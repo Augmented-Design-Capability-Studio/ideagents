@@ -15,6 +15,30 @@ npm run dev
 Open Prototype 8 on the home page and pick 8.1 (or go to `/prototype8-1/`), click Agent and
 paste a Gemini API key. A sample problem and seed idea are pre-filled.
 
+## Demo tree
+
+**Load demo tree** (next to Start) loads a pre-built tree with no API key and
+no calls: the **Targa roof**. The fixed steel bar has to stay, so where does
+the roof go in a rear-engine 2+2? Three futures grow from the root:
+
+- **Under the rear window** (the marked line) — the rear glass lifts, the roof
+  folds over the bar and stows beneath it, glass closes; bounded to a parked
+  car with pinch sensing. Settled — this is today's Targa approach. Its
+  siblings show why: stacking the roof on a fixed glass dead-ends on rear
+  visibility, and sliding panels under a fixed glass goes in circles over
+  space that isn't there.
+- **By hand, in the front trunk** — the 1960s approach, refined to a folding
+  carbon panel in a sleeve. Settled as a purist's option; a roll-up fabric roof
+  dead-ends at speed.
+- **Hidden over the engine** — dead-ends on service access, or drifts into a
+  bar so thick it stops being a Targa.
+
+It's built to the same rules as a live game — levels step down one at a time,
+"settled" only at Detail, stopped nodes aren't debated, and each point comes
+from the opponent's expertise (packaging, service, manufacturing, safety) — and
+is checked against those rules in code. It's an ordinary tree, so with a key
+you can develop on from any open node. The data is in `src/prototype8-1/demo.ts`.
+
 ## The mapping
 
 | Game-theory object | Here |
@@ -306,6 +330,14 @@ truncated.
 **Rows size to their tallest node** rather than using a fixed pitch. Node
 height varies a lot — a sketched node is around 90px taller than an un-sketched
 one — and a uniform pitch made tall nodes collide with the row below.
+
+**Overview** (the Detail / Overview switch in the toolbar) is a separate,
+compact layout rather than a zoom: every node becomes a small card showing
+only its level, its one-line summary and — if its branch stopped — the stop's
+tint, border and symbol, and the tree is packed far more tightly. Edge labels
+drop out; colour and weight carry them. The view fits the whole tree on entry
+(and **Fit** does it again). Clicking a card selects it, with the same lineage
+fade; double-clicking opens it in the detailed view. Hover shows the full text.
 
 **Dragging a node** nudges that node only; its children stay put and the edges
 stretch, so nothing is detached and the structure is untouched. Drag deltas are

@@ -17,6 +17,7 @@ import {
   SAMPLES,
   debaterPair,
 } from "./config";
+import { buildDemoTree, DEMO_PAIR_ID, DEMO_PROBLEM, DEMO_SEED } from "./demo";
 import { createLimiter } from "./limit";
 import {
   futurePicks,
@@ -56,6 +57,8 @@ export default function App() {
   const [startError, setStartError] = useState<string | null>(null);
   // The node futures are currently being played out from, if any.
   const [playingFrom, setPlayingFrom] = useState<string | null>(null);
+  // Whether the tree on screen is the pre-built demo rather than a live game.
+  const [isDemo, setIsDemo] = useState(false);
 
   const selected = selectedId ? nodes[selectedId] : null;
 
@@ -119,6 +122,7 @@ export default function App() {
         imageError: null,
       };
       setNodes({ [id]: root });
+      setIsDemo(false);
       setRootId(id);
       setSelectedId(id);
       setFocus(null);
@@ -381,7 +385,9 @@ export default function App() {
   // sketch has settled (has an image, or failed to get one — otherwise a
   // failed ancestor would strand everything below it).
   useEffect(() => {
-    if (!autoSketch) return;
+    // No key means no drawing — and no Agent dialog popping up on its own, which
+    // is what loading the demo without a key would otherwise do.
+    if (!autoSketch || !getApiKey()) return;
     const all = Object.values(nodes);
     const inFlight = all.filter((n) => n.imageStatus === "loading").length;
     const slots = MAX_CONCURRENT_SKETCHES - inFlight;
@@ -488,6 +494,21 @@ export default function App() {
     void ensureDebate(id, { ...nodes, [id]: resumed });
   };
 
+  // Loads the pre-built Targa tree: no key and no calls needed to explore it.
+  // It's an ordinary tree, so with a key any open node can be developed on.
+  const loadDemo = () => {
+    const demo = buildDemoTree();
+    setProblem(DEMO_PROBLEM);
+    setSeed(DEMO_SEED);
+    setPairId(DEMO_PAIR_ID);
+    setNodes(demo.nodes);
+    setRootId(demo.rootId);
+    setSelectedId(demo.rootId);
+    setFocus(null);
+    setStartError(null);
+    setIsDemo(true);
+  };
+
   const loadSample = (label: string) => {
     const sample = SAMPLES.find((s) => s.label === label);
     if (!sample) return;
@@ -533,8 +554,17 @@ export default function App() {
           >
             {startStatus === "loading" ? "Opening…" : rootId ? "Start over" : "Start the game"}
           </button>
+          <button onClick={loadDemo} title="A pre-built tree: the Targa roof. No API key or calls needed.">
+            Load demo tree
+          </button>
         </div>
         {startError && <p className="p8-error">{startError}</p>}
+        {isDemo && (
+          <p className="p8-demo-note">
+            <strong>Demo tree</strong> — pre-built, no calls used. Click any node to read its
+            debate and trace; with an API key you can keep developing from any open node.
+          </p>
+        )}
       </section>
 
       <section className="p8-section p8-controls">

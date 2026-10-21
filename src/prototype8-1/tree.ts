@@ -108,10 +108,13 @@ const FALLBACK_HEIGHT = 150;
 // Rows are sized to their own tallest node rather than a fixed pitch, because
 // node height varies — a node with a sketch is far taller than one without,
 // and a uniform pitch made tall nodes collide with the row below.
+// The spacing is a parameter so the overview can lay the same tree out far
+// more tightly than the detailed view.
 export function layoutTree(
   nodes: NodeMap,
   rootId: string | null,
-  heights: Record<string, number> = {}
+  heights: Record<string, number> = {},
+  spacing: { x: number; rowGap: number } = { x: X_SPACING, rowGap: ROW_GAP }
 ): { positions: Record<string, { x: number; y: number }>; width: number; height: number } {
   const positions: Record<string, { x: number; y: number }> = {};
   if (!rootId || !nodes[rootId]) return { positions, width: 0, height: 0 };
@@ -125,7 +128,7 @@ export function layoutTree(
 
   const rowY: number[] = [0];
   for (let d = 1; d < tallestInRow.length; d++) {
-    rowY[d] = rowY[d - 1] + tallestInRow[d - 1] + ROW_GAP;
+    rowY[d] = rowY[d - 1] + tallestInRow[d - 1] + spacing.rowGap;
   }
 
   let nextLeafSlot = 0;
@@ -136,7 +139,7 @@ export function layoutTree(
 
     let x: number;
     if (kids.length === 0) {
-      x = nextLeafSlot * X_SPACING;
+      x = nextLeafSlot * spacing.x;
       nextLeafSlot += 1;
     } else {
       const xs = kids.map((k) => place(k.id, depth + 1));
@@ -152,7 +155,7 @@ export function layoutTree(
   const lastRow = tallestInRow.length - 1;
   return {
     positions,
-    width: Math.max(1, nextLeafSlot) * X_SPACING,
+    width: Math.max(1, nextLeafSlot) * spacing.x,
     height: rowY[lastRow] + (tallestInRow[lastRow] ?? FALLBACK_HEIGHT),
   };
 }

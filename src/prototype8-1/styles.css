@@ -1026,3 +1026,62 @@
     transition: none;
   }
 }
+
+/* Detail / Overview switch in the tree toolbar. */
+.p8-view-toggle {
+  display: inline-flex;
+}
+
+.p8-view-toggle button {
+  border-radius: 0;
+}
+
+.p8-view-toggle button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.p8-view-toggle button:last-child {
+  border-radius: 0 4px 4px 0;
+  margin-left: -1px;
+}
+
+.p8-view-toggle .p8-view-on {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.p8-view-toggle .p8-view-on:hover:not(:disabled) {
+  background: #333;
+}
+
+/* Overview cards. */
+.p8-compact {
+  cursor: pointer;
+}
+
+.p8-compact-summary {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: #1a1a1a;
+}
+
+.p8-compact-symbol {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--stop);
+}
+
+.p8-trace-compact {
+  stroke-width: 7;
+}
+
+.p8-demo-note {
+  font-size: 0.8rem;
+  color: #1f4a8a;
+  background: #eef4ff;
+  border-left: 3px solid #2a5caa;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  margin: 0.5rem 0 0;
+}
