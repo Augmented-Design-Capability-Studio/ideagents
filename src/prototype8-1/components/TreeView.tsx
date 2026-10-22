@@ -8,14 +8,16 @@ import {
 } from "react";
 import { FUTURE_STEPS } from "../config";
 import { activeChild, childrenOf, isTerminal, layoutTree, pathTo, type NodeMap } from "../tree";
+import { InputPopover, type InputAction } from "./InputPopover";
 import {
-  LEVEL_LABELS,
   OUTCOMES,
   OUTCOME_COLORS,
   OUTCOME_LABELS,
   STOP_COLORS,
   STOP_LABELS,
   STOP_SYMBOLS,
+  type IdeaNode,
+  type InputSide,
   type Outcome,
   type StopReason,
 } from "../types";
@@ -30,7 +32,17 @@ interface Props {
   onSelect: (id: string) => void;
   // Clicking empty canvas clears the selection, and with it the lineage fade.
   onClearSelection: () => void;
-  onDevelopNext: (id: string) => void;
+  // "+" on a node opens a pop-up there to add the designer's own input to its
+  // debate; composingFor is the node it's open on.
+  composingFor: string | null;
+  onOpenInput: (id: string) => void;
+  onCloseInput: () => void;
+  onAddInput: (
+    id: string,
+    input: { text: string; side: InputSide },
+    action: InputAction
+  ) => void;
+  onRemoveInput: (id: string, inputId: string) => void;
   onPort: (id: string, outcome: Outcome) => void;
   onVisualize: (id: string) => void;
   onPlayFutures: () => void;
@@ -80,15 +92,15 @@ const IDEA_MAX_LINES = 3;
 const TITLE_LINE_H = 15;
 const IDEA_LINE_H = 13;
 
-// Vertical anatomy of a node: the idea on top, the debate below it.
-const PAD_TOP = 18;
-const SECTION_LABEL_H = 13;
-const DIVIDER_GAP = 11;
-// Clear space under the last title line for the output dots, which straddle
-// the bottom edge.
+// Vertical anatomy of a node: the idea on top, the debate topic below a
+// divider. No section labels — the band a node sits in says its level, and the
+// topic reads as a question.
+const IDEA_BASE = 20; // first idea line's baseline
+const TITLE_START = 17; // divider to the first topic line's baseline
+const STOP_BANNER_H = 20;
+// Clear space under the last title line for the dots and corner buttons,
+// which straddle the bottom edge.
 const PAD_BOTTOM = 14;
-// A stopped node's banner is taller than the section label it replaces.
-const STOP_BANNER_EXTRA = 6;
 const THUMB_H = 84;
 
 // One output port per outcome along the bottom edge, in the same left-to-right
@@ -106,15 +118,21 @@ const PORT_X: Record<Outcome, number> = {
 // level, a one-line summary, and how it ended) and packed far more tightly,
 // so a large tree fits on screen and its shape is readable at a glance.
 const C_W = 140;
-const C_H = 40;
+const C_H = 28;
 const C_CHARS = 24;
 const C_X_SPACING = C_W + 12;
-const C_ROW_GAP = 30;
+const C_ROW_GAP = 16;
+const C_BAND_GAP = 40;
 const C_PORT_SPACING = 26;
 
 // Low enough for the overview to fit a big tree in view.
 const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 2.5;
+
+// A stopped node's banner sits between the divider and the reason text.
+function titleStart(node: IdeaNode): number {
+  return isTerminal(node) ? STOP_BANNER_H + 2 + 15 : TITLE_START;
+}
 
 // Text is shown in full rather than truncated, so it wraps — which means node
 // height varies and edges have to read each node's own height.
@@ -141,12 +159,11 @@ function wrap(text: string, maxChars: number, maxLines: number): string[] {
   return lines.length > 0 ? lines : [text];
 }
 
-// One node in the overview: a small card with the level, a one-line summary,
-// and — for a stopped branch — its symbol. Hover shows the full text.
+// One node in the overview: a small card with a one-line summary and — for a
+// stopped branch — its symbol. Its band gives the level. Hover shows the rest.
 function CompactNode({
   x,
   y,
-  level,
   summary,
   title,
   fromColor,
@@ -158,7 +175,6 @@ function CompactNode({
 }: {
   x: number;
   y: number;
-  level: string;
   summary: string;
   title: string;
   fromColor: string;
@@ -168,7 +184,9 @@ function CompactNode({
   onClick: (e: React.MouseEvent) => void;
   onOpen: () => void;
 }) {
-  const line = summary.length > C_CHARS ? `${summary.slice(0, C_CHARS - 1)}…` : summary;
+  // Leave room for the stop symbol on the right.
+  const max = stopped ? C_CHARS - 3 : C_CHARS;
+  const line = summary.length > max ? `${summary.slice(0, max - 1)}…` : summary;
   return (
     <g
       transform={`translate(${x}, ${y})`}
@@ -201,15 +219,12 @@ function CompactNode({
         strokeWidth={selected ? 2 : 1}
       />
       <rect width={C_W} height={3} rx={1.5} fill={fromColor} />
-      <text x={8} y={14} className="p8-node-section">
-        {level.toUpperCase()}
-      </text>
       {stopped && (
-        <text x={C_W - 8} y={15} textAnchor="end" className="p8-compact-symbol">
+        <text x={C_W - 7} y={19} textAnchor="end" className="p8-compact-symbol">
           {STOP_SYMBOLS[stopped.reason]}
         </text>
       )}
-      <text x={8} y={30} className="p8-compact-summary">
+      <text x={8} y={18} className="p8-compact-summary">
         {line}
       </text>
     </g>
@@ -223,7 +238,11 @@ export function TreeView({
   focus,
   onSelect,
   onClearSelection,
-  onDevelopNext,
+  composingFor,
+  onOpenInput,
+  onCloseInput,
+  onAddInput,
+  onRemoveInput,
   onPort,
   onVisualize,
   onPlayFutures,
@@ -263,34 +282,36 @@ export function TreeView({
       TITLE_MAX_LINES
     );
     dividerY[node.id] =
-      PAD_TOP +
-      SECTION_LABEL_H +
-      ideaLines[node.id].length * IDEA_LINE_H +
-      (node.image || node.imageStatus === "loading" ? THUMB_H + 6 : 0) +
-      DIVIDER_GAP / 2;
+      IDEA_BASE +
+      (ideaLines[node.id].length - 1) * IDEA_LINE_H +
+      9 +
+      (node.image || node.imageStatus === "loading" ? THUMB_H + 8 : 0);
     heights[node.id] =
       dividerY[node.id] +
-      DIVIDER_GAP / 2 +
-      SECTION_LABEL_H +
-      titleLines[node.id].length * TITLE_LINE_H +
-      (isTerminal(node) ? STOP_BANNER_EXTRA : 0) +
+      titleStart(node) +
+      (titleLines[node.id].length - 1) * TITLE_LINE_H +
+      5 +
       PAD_BOTTOM;
   }
 
-  const { positions } = layoutTree(nodes, rootId, heights);
+  const { positions, bands: detailBands } = layoutTree(nodes, rootId, heights);
 
   // The overview's own layout. Computed alongside the detailed one rather than
   // instead of it, so nudges (which belong to the detailed layout) survive a
   // trip to the overview and back.
   const compactHeights: Record<string, number> = {};
   for (const id of Object.keys(nodes)) compactHeights[id] = C_H;
-  const { positions: compactPositions } = layoutTree(nodes, rootId, compactHeights, {
-    x: C_X_SPACING,
-    rowGap: C_ROW_GAP,
-  });
+  const { positions: compactPositions, bands: compactBands } = layoutTree(
+    nodes,
+    rootId,
+    compactHeights,
+    { x: C_X_SPACING, rowGap: C_ROW_GAP, bandGap: C_BAND_GAP }
+  );
 
   // Geometry for whichever view is showing.
   const W = overview ? C_W : NODE_W;
+  const bands = overview ? compactBands : detailBands;
+  const bandGap = overview ? C_BAND_GAP : 72;
   const H = (id: string) => (overview ? C_H : heights[id]);
   const portX = (o: Outcome | null) =>
     o === null
@@ -355,7 +376,8 @@ export function TreeView({
     const container = containerRef.current;
     const all = Object.values(compactRef.current);
     if (!container || all.length === 0) return;
-    const minX = Math.min(...all.map((p) => p.x));
+    // Leave room on the left for the pinned band labels.
+    const minX = Math.min(...all.map((p) => p.x)) - 130;
     const maxX = Math.max(...all.map((p) => p.x)) + C_W;
     const minY = Math.min(...all.map((p) => p.y));
     const maxY = Math.max(...all.map((p) => p.y)) + C_H;
@@ -397,6 +419,8 @@ export function TreeView({
     const container = containerRef.current;
     if (!container) return;
     const onWheel = (e: WheelEvent) => {
+      // Scrolling inside the input pop-up scrolls it, not the canvas.
+      if ((e.target as Element | null)?.closest?.(".p8-popover")) return;
       e.preventDefault();
       const rect = container.getBoundingClientRect();
       zoomAbout(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * 0.0015));
@@ -635,6 +659,39 @@ export function TreeView({
             </filter>
           </defs>
           <g transform={`translate(${view.x}, ${view.y}) scale(${view.k})`}>
+            {/* Level bands: the original idea, then concept, embodiment,
+                detail. They run far past the tree on both sides so panning
+                never reaches an edge. Their labels are an overlay (below). */}
+            {(() => {
+              const xs = list.map((n) => at(n.id).x);
+              const minX = Math.min(...xs);
+              const maxX = Math.max(...xs) + W;
+              return bands.map((band) => {
+                const top = band.top - bandGap / 2;
+                const bottom = band.bottom + bandGap / 2;
+                return (
+                  <g key={`band-${band.band}`} className="p8-band" pointerEvents="none">
+                    <rect
+                      x={minX - 6000}
+                      y={top}
+                      width={maxX - minX + 12000}
+                      height={bottom - top}
+                      className={band.band % 2 === 1 ? "p8-band-fill p8-band-alt" : "p8-band-fill"}
+                    />
+                    {band.band > 0 && (
+                      <line
+                        x1={minX - 6000}
+                        x2={maxX + 6000}
+                        y1={top}
+                        y2={top}
+                        className="p8-band-divider"
+                      />
+                    )}
+                  </g>
+                );
+              });
+            })()}
+
             {/* The selected node's path from the root, drawn as a soft band
                 under the edges, so you can trace how the idea got here. */}
             {list.map((node) => {
@@ -689,22 +746,6 @@ export function TreeView({
                       strokeOpacity={ruledOut ? 0.4 : 1}
                       strokeDasharray={ruledOut ? "4 3" : undefined}
                     />
-                    {/* The overview drops edge labels; colour and weight carry it. */}
-                    {!overview && (
-                      <text
-                        x={x2}
-                        y={y2 - 8}
-                        textAnchor="middle"
-                        className="p8-edge-label"
-                        fill={color}
-                        fillOpacity={ruledOut ? 0.5 : 1}
-                      >
-                        {isActive ? "★ " : ""}
-                        {child.fromOutcome ? OUTCOME_LABELS[child.fromOutcome] : ""}
-                        {/* Moving down a level is marked where it happens. */}
-                        {child.level !== node.level ? ` · ↓ ${LEVEL_LABELS[child.level]}` : ""}
-                      </text>
-                    )}
                   </g>
                 );
               });
@@ -734,7 +775,6 @@ export function TreeView({
                     key={node.id}
                     x={pos.x}
                     y={pos.y}
-                    level={LEVEL_LABELS[node.level]}
                     summary={node.ideaSummary || node.ideaState}
                     title={node.consideration.title}
                     fromColor={node.fromOutcome ? OUTCOME_COLORS[node.fromOutcome] : "#ccc"}
@@ -794,33 +834,12 @@ export function TreeView({
                     // Which case produced this node, matching its incoming edge.
                     fill={node.fromOutcome ? OUTCOME_COLORS[node.fromOutcome] : "#ccc"}
                   />
-                  {/* Top half: the idea as it currently stands. */}
-                  <text x={13} y={PAD_TOP} className="p8-node-section">
-                    IDEA · {LEVEL_LABELS[node.level].toUpperCase()}
-                  </text>
-
-                  <g
-                    className="p8-node-icon"
-                    transform={`translate(${NODE_W - 30}, 6)`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      movedRef.current = false;
-                    }}
-                    onClick={clickIfNotDragging(() => onVisualize(node.id))}
-                  >
-                    <title>{node.image ? "Redraw the sketch" : "Sketch this idea"}</title>
-                    <circle cx={10} cy={10} r={9.5} className="p8-icon-circle" />
-                    {node.imageStatus === "loading" ? (
-                      <Spinner cx={10} cy={10} r={5} />
-                    ) : (
-                      <PictureGlyph />
-                    )}
-                  </g>
+                  {/* Top: the idea as it currently stands. */}
                   {ideaLines[node.id].map((line, i) => (
                     <text
                       key={`idea-${i}`}
                       x={13}
-                      y={PAD_TOP + SECTION_LABEL_H + i * IDEA_LINE_H}
+                      y={IDEA_BASE + i * IDEA_LINE_H}
                       className="p8-node-idea"
                     >
                       {line}
@@ -831,7 +850,7 @@ export function TreeView({
                     <image
                       href={node.image}
                       x={13}
-                      y={PAD_TOP + SECTION_LABEL_H + ideaLines[node.id].length * IDEA_LINE_H - 6}
+                      y={IDEA_BASE + (ideaLines[node.id].length - 1) * IDEA_LINE_H + 8}
                       width={NODE_W - 26}
                       height={THUMB_H}
                       preserveAspectRatio="xMidYMid slice"
@@ -839,11 +858,7 @@ export function TreeView({
                     />
                   ) : (
                     node.imageStatus === "loading" && (
-                      <g
-                        transform={`translate(13, ${
-                          PAD_TOP + SECTION_LABEL_H + ideaLines[node.id].length * IDEA_LINE_H - 6
-                        })`}
-                      >
+                      <g transform={`translate(13, ${IDEA_BASE + (ideaLines[node.id].length - 1) * IDEA_LINE_H + 8})`}>
                         <rect
                           width={NODE_W - 26}
                           height={THUMB_H}
@@ -869,59 +884,43 @@ export function TreeView({
                     <>
                       <rect
                         x={8}
-                        y={dividerY[node.id] - 2}
+                        y={dividerY[node.id] + 2}
                         width={NODE_W - 16}
-                        height={SECTION_LABEL_H + STOP_BANNER_EXTRA + 2}
+                        height={STOP_BANNER_H}
                         rx={3}
                         className="p8-stop-banner"
                       />
                       <text
                         x={14}
-                        y={dividerY[node.id] + SECTION_LABEL_H + 1}
+                        y={dividerY[node.id] + 16}
                         className="p8-stop-banner-text"
                       >
                         {STOP_SYMBOLS[stopped.reason]} {STOP_LABELS[stopped.reason].toUpperCase()}
                       </text>
                     </>
                   ) : (
-                    <>
-                      <line
-                        x1={13}
-                        y1={dividerY[node.id]}
-                        x2={NODE_W - 13}
-                        y2={dividerY[node.id]}
-                        className="p8-node-divider"
-                      />
-                      {/* Bottom half: what is being argued about it. */}
-                      <text
-                        x={13}
-                        y={dividerY[node.id] + DIVIDER_GAP / 2 + SECTION_LABEL_H - 3}
-                        className="p8-node-section"
-                      >
-                        UP FOR DEBATE
-                      </text>
-                    </>
+                    <line
+                      x1={13}
+                      y1={dividerY[node.id]}
+                      x2={NODE_W - 13}
+                      y2={dividerY[node.id]}
+                      className="p8-node-divider"
+                    />
                   )}
+                  {/* Bottom: the debate topic (or, if stopped, why). */}
                   {lines.map((line, i) => (
                     <text
                       key={`title-${i}`}
                       x={13}
-                      y={
-                        dividerY[node.id] +
-                        DIVIDER_GAP / 2 +
-                        SECTION_LABEL_H +
-                        11 +
-                        (stopped ? STOP_BANNER_EXTRA : 0) +
-                        i * TITLE_LINE_H
-                      }
+                      y={dividerY[node.id] + titleStart(node) + i * TITLE_LINE_H}
                       className="p8-node-title"
                     >
                       {line}
                     </text>
                   ))}
 
-                  {/* A stopped branch has no ports or "+" — nothing grows from it
-                      unless the designer chooses to keep going in the panel. */}
+                  {/* A stopped branch has no ports — nothing grows from it unless
+                      the designer chooses to keep going. */}
                   {!stopped && (
                     <>
                       {/* Output ports: filled where that case has been developed,
@@ -970,34 +969,145 @@ export function TreeView({
                         );
                       })}
 
-                      {/* Sits on the bottom-right corner, clear of the output ports
-                          along the bottom edge. */}
-                      <g
-                        className="p8-node-add"
-                        transform={`translate(${NODE_W - 11}, ${h - 11})`}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          movedRef.current = false;
-                        }}
-                        onClick={clickIfNotDragging(() => onDevelopNext(node.id))}
-                      >
-                        <title>Develop the winner from this node — or the suggested winner if none is marked</title>
-                        <circle cx={11} cy={11} r={10} className="p8-add-circle" />
-                        {node.developing.length > 0 || node.status === "debating" ? (
-                          <Spinner cx={11} cy={11} r={5.5} />
-                        ) : (
-                          <text x={11} y={15} textAnchor="middle" className="p8-add-plus">
-                            +
-                          </text>
-                        )}
-                      </g>
                     </>
                   )}
+                  {/* "+" on the bottom-right corner: add your own input to this
+                      node's debate. On stopped nodes too — input is often what
+                      gets a stopped branch going again. Shows how many inputs
+                      the node already has. */}
+                  <g
+                    className="p8-node-add"
+                    transform={`translate(${NODE_W - 11}, ${h - 11})`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      movedRef.current = false;
+                    }}
+                    onClick={clickIfNotDragging(() => onOpenInput(node.id))}
+                  >
+                    <title>
+                      Add what you know to this debate
+                      {node.inputs.length > 0 ? ` (${node.inputs.length} added)` : ""}
+                    </title>
+                    <circle cx={11} cy={11} r={10} className="p8-add-circle" />
+                    {node.status === "debating" ? (
+                      <Spinner cx={11} cy={11} r={5.5} />
+                    ) : (
+                      <text x={11} y={15} textAnchor="middle" className="p8-add-plus">
+                        +
+                      </text>
+                    )}
+                    {node.inputs.length > 0 && (
+                      <g transform="translate(17, -3)">
+                        <circle r={7} className="p8-add-count-bg" />
+                        <text y={3} textAnchor="middle" className="p8-add-count">
+                          {node.inputs.length}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+
+                  {/* Sketch button on the bottom-left corner, mirroring "+" on the
+                      right. Shown on stopped nodes too. */}
+                  <g
+                    className="p8-node-icon"
+                    transform={`translate(-10, ${h - 10})`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      movedRef.current = false;
+                    }}
+                    onClick={clickIfNotDragging(() => onVisualize(node.id))}
+                  >
+                    <title>{node.image ? "Redraw the sketch" : "Sketch this idea"}</title>
+                    <circle cx={10} cy={10} r={9.5} className="p8-icon-circle" />
+                    {node.imageStatus === "loading" ? (
+                      <Spinner cx={10} cy={10} r={5} />
+                    ) : (
+                      <PictureGlyph />
+                    )}
+                  </g>
                 </g>
               );
             })}
           </g>
         </svg>
+
+        {/* Band labels, pinned to the left edge of the canvas at a constant
+            size, like track headers in a video editor. Each follows its band
+            as the view pans and zooms, and sticks to the top of the band while
+            any of it is on screen. */}
+        <div className="p8-band-labels" aria-hidden="true">
+          {bands.map((band) => {
+            const top = view.y + view.k * (band.top - bandGap / 2);
+            const bottom = view.y + view.k * (band.bottom + bandGap / 2);
+            const LABEL_H = 22;
+            const y = Math.min(Math.max(top + 6, 6), bottom - LABEL_H - 4);
+            if (bottom < 0 || y > (containerRef.current?.clientHeight ?? Infinity)) return null;
+            return (
+              <span key={`label-${band.band}`} className="p8-band-tag" style={{ top: y }}>
+                {band.label}
+              </span>
+            );
+          })}
+        </div>
+
+        {(() => {
+          // The pop-up never covers its node: it opens under the node's "+",
+          // else above the node's top edge, else beside the node — whichever
+          // fits — clamped inside the canvas, with its arrow on the node.
+          const node = composingFor ? nodes[composingFor] : null;
+          const container = containerRef.current;
+          if (overview || !node || !positions[node.id] || !container) return null;
+          const pos = at(node.id);
+          const nodeLeft = view.x + view.k * pos.x;
+          const nodeRight = view.x + view.k * (pos.x + NODE_W);
+          const nodeTop = view.y + view.k * pos.y;
+          const nodeBottom = view.y + view.k * (pos.y + heights[node.id]);
+          const POP_W = 320;
+          // Rough height, only to choose a side: the box plus listed inputs.
+          const POP_H = 250 + Math.min(node.inputs.length, 3) * 44;
+          const GAP = 14;
+          const cw = container.clientWidth;
+          const ch = container.clientHeight;
+          const clampX = (x: number) => Math.min(Math.max(x, 8), cw - POP_W - 8);
+          const clampY = (y: number) => Math.min(Math.max(y, 8), ch - POP_H - 8);
+
+          let placement: "below" | "above" | "right" | "left";
+          if (nodeBottom + GAP + POP_H <= ch) placement = "below";
+          else if (nodeTop - GAP - POP_H >= 0) placement = "above";
+          else if (nodeRight + GAP + POP_W <= cw) placement = "right";
+          else placement = "left";
+
+          let left: number;
+          let top: number;
+          let arrow: number;
+          if (placement === "below" || placement === "above") {
+            // Arrow at the "+" on the node's right edge.
+            left = clampX(nodeRight - POP_W + 28);
+            top = placement === "below" ? nodeBottom + GAP : nodeTop - GAP;
+            arrow = Math.min(Math.max(nodeRight - left, 16), POP_W - 16);
+          } else {
+            left = placement === "right" ? nodeRight + GAP : nodeLeft - GAP - POP_W;
+            const mid = (Math.max(nodeTop, 0) + Math.min(nodeBottom, ch)) / 2;
+            top = clampY(mid - 60);
+            arrow = Math.min(Math.max(mid - top, 16), POP_H - 16);
+          }
+          return (
+            <InputPopover
+              key={node.id}
+              left={left}
+              top={top}
+              placement={placement}
+              arrow={arrow}
+              title={node.consideration.title}
+              inputs={node.inputs}
+              stopped={isTerminal(node)}
+              busy={node.status === "debating"}
+              onAdd={(input, action) => onAddInput(node.id, input, action)}
+              onRemove={(inputId) => onRemoveInput(node.id, inputId)}
+              onClose={onCloseInput}
+            />
+          );
+        })()}
       </div>
       <div className="p8-canvas-footer">
         <div className="p8-legend-row">
@@ -1012,7 +1122,7 @@ export function TreeView({
             <svg width="22" height="8" aria-hidden="true">
               <line x1="1" y1="4" x2="21" y2="4" stroke="#555" strokeWidth="3" />
             </svg>
-            ★ Winner
+            Winner (thicker)
           </span>
           <span className="p8-legend-item">
             <svg width="22" height="8" aria-hidden="true">

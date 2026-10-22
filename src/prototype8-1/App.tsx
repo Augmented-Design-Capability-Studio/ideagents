@@ -23,12 +23,11 @@ import {
   futurePicks,
   isTerminal,
   nearestSketchedAncestor,
-  outcomePreference,
   pathTo,
   wantsAutoSketch,
   type NodeMap,
 } from "./tree";
-import { OUTCOMES, type IdeaNode, type Outcome } from "./types";
+import { OUTCOMES, type DesignerInput, type IdeaNode, type Outcome } from "./types";
 
 let nodeCounter = 0;
 function nextId(): string {
@@ -100,7 +99,7 @@ export default function App() {
         id,
         parentId: null,
         depth: 0,
-        level: "direction",
+        level: "concept",
         stop: null,
         resumed: false,
         futureEnd: false,
@@ -117,6 +116,7 @@ export default function App() {
         childByOutcome: {},
         developing: [],
         note: "",
+        inputs: [],
         image: null,
         imageStatus: "idle",
         imageError: null,
@@ -302,6 +302,7 @@ export default function App() {
         childByOutcome: {},
         developing: [],
         note: "",
+        inputs: [],
         image: null,
         imageStatus: "idle",
         imageError: null,
@@ -328,28 +329,63 @@ export default function App() {
     }
   };
 
-  // The "+" on a node: develop the marked winner, or the debate's suggested
-  // winner if none is marked yet — or go to it if it already exists.
-  const handleDevelopNext = async (nodeId: string) => {
+  // The "+" on a node: open the input box for it in the panel, so the designer
+  // can add what they know to that node's debate.
+  const [composingFor, setComposingFor] = useState<string | null>(null);
+  // Clicking "+" again on the same node closes the pop-up.
+  const handleOpenInput = (nodeId: string) => {
+    setSelectedId(nodeId);
+    setComposingFor((current) => (current === nodeId ? null : nodeId));
+  };
+
+  // Stores the designer's input on a node, then optionally acts on it:
+  // "reargue" reruns the node's debate with the input in it (the marked winner
+  // and any developed branches are kept); "keep" overrides a stop and argues
+  // it. Plain "add" spends no call — the input still reaches every later
+  // debate and develop call on this branch.
+  const handleAddInput = (
+    nodeId: string,
+    input: { text: string; side: DesignerInput["side"] },
+    action: "add" | "reargue" | "keep"
+  ) => {
     const node = nodes[nodeId];
-    if (!node || isTerminal(node)) return;
-    const withDebate = node.debate ? node : await ensureDebate(nodeId);
-    if (!withDebate?.debate) return;
+    if (!node) return;
+    const added: DesignerInput = { id: `in-${Date.now().toString(36)}`, ...input };
+    const updated: IdeaNode = {
+      ...node,
+      inputs: [...node.inputs, added],
+      ...(action === "reargue" ? { debate: null, status: "ready" as const, error: null } : {}),
+      ...(action === "keep" ? { resumed: true, debate: null, status: "ready" as const } : {}),
+    };
+    setNodes((prev) =>
+      prev[nodeId]
+        ? {
+            ...prev,
+            [nodeId]: {
+              ...prev[nodeId],
+              inputs: updated.inputs,
+              ...(action === "add" ? {} : { debate: null, status: "ready" as const, error: null }),
+              ...(action === "keep" ? { resumed: true } : {}),
+            },
+          }
+        : prev
+    );
+    setComposingFor(null);
+    if (action !== "add") void ensureDebate(nodeId, { ...nodes, [nodeId]: updated });
+  };
 
-    const outcome = outcomePreference(withDebate)[0];
-
-    const existing = withDebate.childByOutcome[outcome];
-    if (existing) {
-      setSelectedId(existing);
-      focusNode(existing);
-      void ensureDebate(existing);
-      return;
-    }
-    const child = await handleDevelop(nodeId, outcome);
-    if (child) {
-      setSelectedId(child.id);
-      focusNode(child.id);
-    }
+  const handleRemoveInput = (nodeId: string, inputId: string) => {
+    setNodes((prev) =>
+      prev[nodeId]
+        ? {
+            ...prev,
+            [nodeId]: {
+              ...prev[nodeId],
+              inputs: prev[nodeId].inputs.filter((i) => i.id !== inputId),
+            },
+          }
+        : prev
+    );
   };
 
   // Sketches one node. It builds on the nearest sketched ancestor rather than
@@ -525,120 +561,126 @@ export default function App() {
         </div>
       </header>
 
-      <section className="p8-section">
-        <div className="section-header">
-          <h2>Problem and seed idea</h2>
-          <select value="" onChange={(e) => loadSample(e.target.value)}>
-            <option value="">Load a sample…</option>
-            {SAMPLES.map((s) => (
-              <option key={s.label} value={s.label}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <label className="p8-field">
-          Problem
-          <textarea rows={2} value={problem} onChange={(e) => setProblem(e.target.value)} />
-        </label>
-        <label className="p8-field">
-          Seed idea
-          <textarea rows={2} value={seed} onChange={(e) => setSeed(e.target.value)} />
-        </label>
-
-        <div className="p8-row">
-          <button
-            onClick={() => void handleStart()}
-            disabled={!problem.trim() || !seed.trim() || startStatus === "loading"}
-          >
-            {startStatus === "loading" ? "Opening…" : rootId ? "Start over" : "Start the game"}
-          </button>
-          <button onClick={loadDemo} title="A pre-built tree: the Targa roof. No API key or calls needed.">
-            Load demo tree
-          </button>
-        </div>
-        {startError && <p className="p8-error">{startError}</p>}
+      {/* Start / Load demo stay out in the open; the inputs that feed them
+          are folded away so the canvas and panel get the screen. */}
+      <div className="p8-actionbar">
+        <button
+          className="p8-primary-action"
+          onClick={() => void handleStart()}
+          disabled={!problem.trim() || !seed.trim() || startStatus === "loading"}
+        >
+          {startStatus === "loading" ? "Opening…" : rootId ? "Start over" : "Start the game"}
+        </button>
+        <button onClick={loadDemo} title="A pre-built tree: the Targa roof. No API key or calls needed.">
+          Load demo tree
+        </button>
         {isDemo && (
-          <p className="p8-demo-note">
-            <strong>Demo tree</strong> — pre-built, no calls used. Click any node to read its
-            debate and trace; with an API key you can keep developing from any open node.
-          </p>
+          <span className="p8-demo-note">
+            <strong>Demo tree</strong> — pre-built, no calls used. With an API key you can keep
+            developing from any open node.
+          </span>
         )}
-      </section>
+        {startError && <span className="p8-error">{startError}</span>}
+      </div>
 
-      <section className="p8-section p8-controls">
-        <div className="section-header p8-controls-header">
-          <h2>Setup</h2>
-          {!rootId && (
-            <span className="p8-hint">
-              These shape the very first consideration and debate — set them before you start.
-            </span>
-          )}
-        </div>
-
-        <div className="p8-control-group">
-            <label className="p8-radicality">
-              <span>
-                Radicality <strong>{radicality}</strong>/5 — {RADICALITY_LABELS[radicality]}
-              </span>
-              <input
-                type="range"
-                min={MIN_RADICALITY}
-                max={MAX_RADICALITY}
-                value={radicality}
-                onChange={(e) => setRadicality(Number(e.target.value))}
-              />
+      <div className="p8-folds">
+        <details className="p8-fold">
+          <summary>
+            <strong>Problem and seed idea</strong>
+            <span className="p8-fold-preview">{seed}</span>
+          </summary>
+          <div className="p8-fold-body">
+            <select value="" onChange={(e) => loadSample(e.target.value)}>
+              <option value="">Load a sample…</option>
+              {SAMPLES.map((s) => (
+                <option key={s.label} value={s.label}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <label className="p8-field">
+              Problem
+              <textarea rows={2} value={problem} onChange={(e) => setProblem(e.target.value)} />
             </label>
-            <p className="p8-hint">
-              Shifts how deep each consideration cuts and how far your side pushes.
-            </p>
+            <label className="p8-field">
+              Seed idea
+              <textarea rows={2} value={seed} onChange={(e) => setSeed(e.target.value)} />
+            </label>
           </div>
+        </details>
 
-          <div className="p8-control-group p8-control-wide">
-            <label className="p8-debaters">
-              <span>Who is arguing</span>
-              <select value={pairId} onChange={(e) => setPairId(e.target.value)}>
-                {DEBATER_PAIRS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="p8-sides">
-              <p>
-                <strong>You</strong> <span className="p8-hint">(arguing for the idea)</span> —{" "}
-                {pairId === "auto"
-                  ? "a perspective the model chooses."
-                  : `${debaterPair(pairId).pro.role}, who ${debaterPair(pairId).pro.stance}.`}
-              </p>
-              <p>
-                <strong>Opponent</strong> <span className="p8-hint">(challenging it)</span> —{" "}
-                {pairId === "auto"
-                  ? "a stakeholder the model picks for each point."
-                  : `${debaterPair(pairId).con.role}, who ${debaterPair(pairId).con.stance}.`}
+        <details className="p8-fold">
+          <summary>
+            <strong>Setup</strong>
+            <span className="p8-fold-preview">
+              Radicality {radicality}/5 · {debaterPair(pairId).label}
+            </span>
+          </summary>
+          <div className="p8-fold-body p8-controls">
+          <div className="p8-control-group">
+              <label className="p8-radicality">
+                <span>
+                  Radicality <strong>{radicality}</strong>/5 — {RADICALITY_LABELS[radicality]}
+                </span>
+                <input
+                  type="range"
+                  min={MIN_RADICALITY}
+                  max={MAX_RADICALITY}
+                  value={radicality}
+                  onChange={(e) => setRadicality(Number(e.target.value))}
+                />
+              </label>
+              <p className="p8-hint">
+                Shifts how deep each consideration cuts and how far your side pushes.
               </p>
             </div>
-            <p className="p8-hint">
-              Each point up for debate is raised from inside the opponent's expertise. Switch
-              pairs partway through to re-argue a later node from a different lens and compare the
-              two branches.
-            </p>
-            <label className="p8-checkbox">
-              <input
-                type="checkbox"
-                checked={autoSketch}
-                onChange={(e) => setAutoSketch(e.target.checked)}
-              />
-              Sketch the root and the end of each future automatically
-              <span className="p8-hint">
-                One image call each. Any other node can be sketched on demand from its picture
-                button.
-              </span>
-            </label>
+
+            <div className="p8-control-group p8-control-wide">
+              <label className="p8-debaters">
+                <span>Who is arguing</span>
+                <select value={pairId} onChange={(e) => setPairId(e.target.value)}>
+                  {DEBATER_PAIRS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="p8-sides">
+                <p>
+                  <strong>You</strong> <span className="p8-hint">(arguing for the idea)</span> —{" "}
+                  {pairId === "auto"
+                    ? "a perspective the model chooses."
+                    : `${debaterPair(pairId).pro.role}, who ${debaterPair(pairId).pro.stance}.`}
+                </p>
+                <p>
+                  <strong>Opponent</strong> <span className="p8-hint">(challenging it)</span> —{" "}
+                  {pairId === "auto"
+                    ? "a stakeholder the model picks for each point."
+                    : `${debaterPair(pairId).con.role}, who ${debaterPair(pairId).con.stance}.`}
+                </p>
+              </div>
+              <p className="p8-hint">
+                Each point up for debate is raised from inside the opponent's expertise. Switch
+                pairs partway through to re-argue a later node from a different lens and compare the
+                two branches.
+              </p>
+              <label className="p8-checkbox">
+                <input
+                  type="checkbox"
+                  checked={autoSketch}
+                  onChange={(e) => setAutoSketch(e.target.checked)}
+                />
+                Sketch the root and the end of each future automatically
+                <span className="p8-hint">
+                  One image call each. Any other node can be sketched on demand from its picture
+                  button.
+                </span>
+              </label>
+            </div>
           </div>
-      </section>
+        </details>
+      </div>
 
       <div className={`p8-progress ${busy ? "p8-progress-on" : ""}`} aria-hidden="true">
         <span />
@@ -652,8 +694,15 @@ export default function App() {
             selectedId={selectedId}
             focus={focus}
             onSelect={handleSelect}
-            onClearSelection={() => setSelectedId(null)}
-            onDevelopNext={(id) => void handleDevelopNext(id)}
+            onClearSelection={() => {
+              setSelectedId(null);
+              setComposingFor(null);
+            }}
+            composingFor={composingFor}
+            onOpenInput={handleOpenInput}
+            onCloseInput={() => setComposingFor(null)}
+            onAddInput={handleAddInput}
+            onRemoveInput={handleRemoveInput}
             onPort={(id, outcome) => void handlePort(id, outcome)}
             onVisualize={(id) => void handleVisualize(id)}
             onPlayFutures={() => selectedId && void handlePlayFutures(selectedId)}
@@ -665,9 +714,6 @@ export default function App() {
             <NodePanel
               nodes={nodes}
               node={selected}
-              path={pathTo(nodes, selected.id)}
-              playing={playingFrom !== null}
-              onPlayFutures={() => void handlePlayFutures(selected.id)}
               onResume={() => handleResume(selected.id)}
               onWinnerChange={(winner) => patchNode(selected.id, { winner })}
               onDevelop={(outcome) => void handleDevelop(selected.id, outcome)}
@@ -676,8 +722,6 @@ export default function App() {
                 focusNode(id);
               }}
               onRunDebate={() => void ensureDebate(selected.id)}
-              onVisualize={() => void handleVisualize(selected.id)}
-              onNoteChange={(note) => patchNode(selected.id, { note })}
             />
           )}
         </div>

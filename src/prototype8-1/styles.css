@@ -1,7 +1,114 @@
 /* Shared reset/layout/dialog/button styles live in src/shared/styles.css. */
 
+/* Full width, slim margins: the canvas and node panel take the screen. */
 .p8-app {
-  max-width: 1500px;
+  max-width: none;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.p8-app .app-header {
+  margin-bottom: 0.6rem;
+}
+
+.p8-actionbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.p8-actionbar .p8-primary-action {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.p8-actionbar .p8-primary-action:hover:not(:disabled) {
+  background: #333;
+}
+
+.p8-actionbar .p8-primary-action:disabled {
+  background: #bbb;
+  border-color: #bbb;
+}
+
+.p8-actionbar .p8-demo-note,
+.p8-actionbar .p8-error {
+  margin: 0;
+}
+
+/* Problem/seed and Setup, folded away side by side. */
+.p8-folds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  margin-bottom: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .p8-folds {
+    grid-template-columns: 1fr;
+  }
+}
+
+.p8-fold {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.p8-fold summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.p8-fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.p8-fold summary::before {
+  content: "▸";
+  color: #888;
+  flex: none;
+}
+
+.p8-fold[open] summary::before {
+  content: "▾";
+}
+
+.p8-fold summary strong {
+  flex: none;
+}
+
+.p8-fold-preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.p8-fold-body {
+  padding: 0.2rem 0.85rem 0.85rem;
+  border-top: 1px solid #eee;
+}
+
+.p8-fold-body select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  margin: 0.6rem 0;
 }
 
 .p8-section {
@@ -19,8 +126,7 @@
   margin-bottom: 0.6rem;
 }
 
-.p8-field textarea,
-.p8-note {
+.p8-field textarea {
   font: inherit;
   font-size: 0.85rem;
   padding: 0.5rem 0.7rem;
@@ -127,9 +233,10 @@
 /* Tree on the left, property panel on the right, both exactly the same
    height so the board reads as one surface. */
 .p8-board {
-  --p8-board-height: 70vh;
+  /* Whatever the screen has left under the header, action bar and folds. */
+  --p8-board-height: calc(100vh - 9.5rem);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 24rem;
+  grid-template-columns: minmax(0, 1fr) 27rem;
   gap: 1rem;
   align-items: start;
 }
@@ -153,8 +260,7 @@
 
 /* Both board headers are the same height so the two columns line up. The
    tree header carries buttons, so that sets the bar. */
-.p8-header-row,
-.p8-panel-header {
+.p8-header-row {
   min-height: 2.1rem;
   align-items: center;
 }
@@ -193,6 +299,7 @@
 /* The canvas fills whatever the wrapper has left and clips — the tree is
    reached by panning, not by scrolling. */
 .p8-canvas {
+  position: relative;
   flex: 1;
   min-height: 0;
   border: 1px solid #eee;
@@ -564,22 +671,6 @@
   }
 }
 
-.p8-sketch-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.p8-sketch-head h3 {
-  margin-bottom: 0.2rem;
-}
-
-.p8-sketch-head button {
-  font-size: 0.72rem;
-  padding: 0.15rem 0.5rem;
-}
-
 .p8-sketch {
   width: 100%;
   border-radius: 4px;
@@ -699,63 +790,10 @@
   overflow-y: auto;
 }
 
-.p8-panel-header {
-  position: sticky;
-  top: -0.75rem;
-  background: #fff;
-  padding: 0.25rem 0 0.5rem;
-  margin: -0.25rem 0 0.5rem;
-  border-bottom: 1px solid #eee;
-  z-index: 1;
-}
-
-.p8-panel-header .p8-hint {
-  margin: 0;
-}
-
-.p8-node-heading {
-  font-size: 1.05rem;
-  margin: 0 0 0.35rem;
-}
-
 .p8-panel h3 {
   font-size: 0.82rem;
   margin: 1rem 0 0.35rem;
   color: #444;
-}
-
-.p8-consideration {
-  font-size: 1rem;
-  line-height: 1.45;
-  margin: 0 0 0.6rem;
-}
-
-.p8-idea-state {
-  font-size: 0.82rem;
-  background: #fafafa;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 0.5rem 0.6rem;
-  margin: 0;
-}
-
-.p8-carried,
-.p8-what-changed {
-  font-size: 0.78rem;
-  color: #444;
-  margin: 0.4rem 0 0;
-  padding-left: 0.6rem;
-  border-left: 3px solid #e4e0ea;
-}
-
-/* Continuity reads green, change reads violet — a branch that has quietly
-   become a different idea shows up as a thin or empty green line. */
-.p8-carried {
-  border-left-color: #bfe0c6;
-}
-
-.p8-what-changed {
-  border-left-color: #d9cfe8;
 }
 
 .p8-side {
@@ -821,11 +859,33 @@
 
 /* Each card carries its outcome's canvas colour in --outcome. */
 .p8-outcome {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   border: 1px solid #eee;
   border-left: 3px solid var(--outcome, #eee);
   border-radius: 4px;
-  padding: 0.45rem 0.55rem;
+  padding: 0.3rem 0.45rem;
   font-size: 0.8rem;
+}
+
+/* Develop / Go to sits at the right end of the outcome row. */
+.p8-outcome .p8-outcome-action {
+  margin-left: auto;
+}
+
+/* Mark-as-winner star, in the outcome's colour. */
+.p8-outcome .p8-star {
+  border: none;
+  background: none;
+  padding: 0 0.15rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--outcome);
+}
+
+.p8-outcome .p8-star:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--outcome) 12%, #fff);
 }
 
 .p8-outcome-current {
@@ -833,26 +893,8 @@
   background: color-mix(in srgb, var(--outcome) 7%, #fff);
 }
 
-.p8-outcome-head strong {
+.p8-outcome strong {
   color: var(--outcome);
-}
-
-.p8-outcome-head {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.3rem;
-}
-
-.p8-outcome-body {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  justify-content: space-between;
-}
-
-.p8-outcome-body .p8-hint {
-  margin: 0;
 }
 
 .p8-live-tag,
@@ -873,54 +915,13 @@
   color: #555;
 }
 
-/* Pushed to the right of the outcome's head row. */
-.p8-outcome .p8-winner-toggle {
-  margin-left: auto;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.45rem;
-  color: #666;
-}
-
-.p8-outcome .p8-winner-on {
-  background: var(--outcome);
-  border-color: var(--outcome);
-  color: #fff;
-  font-weight: 600;
-}
-
-.p8-outcome .p8-winner-on:hover:not(:disabled) {
-  background: var(--outcome);
-  filter: brightness(0.9);
-}
-
 .p8-outcome .p8-live-tag {
   background: var(--outcome);
-}
-
-.p8-suggestion {
-  font-size: 0.78rem;
-  color: #333;
-  background: #f5f5f5;
-  border-left: 3px solid #bbb;
-  border-radius: 4px;
-  padding: 0.4rem 0.55rem;
-  margin: 0.5rem 0;
 }
 
 .p8-outcome button {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
-}
-
-/* The node's level, under the panel header. */
-.p8-level {
-  font-size: 0.75rem;
-  color: #666;
-  margin: 0 0 0.5rem;
-}
-
-.p8-level strong {
-  color: #333;
 }
 
 /* Why a branch stopped. --stop carries the stop's colour. */
@@ -945,73 +946,6 @@
 .p8-stop button {
   font-size: 0.75rem;
   padding: 0.2rem 0.6rem;
-}
-
-/* "How it got here": the path from the root, one step per line. */
-.p8-trace-list {
-  margin: 0.75rem 0;
-  font-size: 0.78rem;
-}
-
-.p8-trace-list summary {
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: #444;
-  cursor: pointer;
-}
-
-.p8-trace-list ol {
-  list-style: none;
-  margin: 0.4rem 0 0;
-  padding: 0 0 0 0.6rem;
-  border-left: 2px solid #e5e5e5;
-}
-
-.p8-trace-list li {
-  margin: 0 0 0.35rem;
-}
-
-.p8-trace-move {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.p8-trace-step {
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-size: 0.78rem;
-  padding: 0.2rem 0.4rem;
-  border-color: transparent;
-  background: transparent;
-}
-
-.p8-trace-step:hover:not(:disabled) {
-  border-color: #ddd;
-}
-
-.p8-trace-current .p8-trace-step {
-  font-weight: 600;
-  background: #f5f5f5;
-}
-
-.p8-trace-level {
-  display: inline-block;
-  min-width: 5.5rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: #888;
-}
-
-.p8-futures {
-  margin-top: 0.6rem;
-}
-
-.p8-futures .p8-hint {
-  margin: 0.3rem 0 0;
 }
 
 /* Nodes and edges outside the selected node's lineage. Declared last so it
@@ -1084,4 +1018,289 @@
   border-radius: 4px;
   padding: 0.4rem 0.6rem;
   margin: 0.5rem 0 0;
+}
+
+/* The simplified panel: a title, then labelled parts. */
+.p8-panel-title {
+  font-size: 1rem;
+  line-height: 1.35;
+  margin: 0 0 0.6rem;
+}
+
+.p8-panel-part {
+  margin-top: 0.9rem;
+}
+
+.p8-part-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+  margin: 0.7rem 0 0.3rem;
+}
+
+.p8-part-label span {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Beats the generic .p8-panel h3 rule. */
+.p8-panel .p8-topic-title {
+  font-size: 1.05rem;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem;
+}
+
+.p8-topic-text {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Level bands behind the tree. */
+.p8-band-fill {
+  fill: #fff;
+}
+
+.p8-band-alt {
+  fill: #f6f7f9;
+}
+
+.p8-band-divider {
+  stroke: #e2e4e8;
+  stroke-width: 1;
+}
+
+
+/* Screen-space overlay for the band labels: left edge, constant size. */
+.p8-band-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.p8-band-tag {
+  position: absolute;
+  left: 10px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7c838c;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e2e4e8;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* The designer's own input on a node. --side carries the side's colour. */
+.p8-inputs {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.p8-inputs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  border-left: 3px solid var(--side);
+  background: color-mix(in srgb, var(--side) 6%, #fff);
+  border-radius: 4px;
+  padding: 0.35rem 0.45rem;
+  margin-bottom: 0.3rem;
+}
+
+.p8-input-tag {
+  flex: none;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--side);
+  margin-top: 0.12rem;
+}
+
+.p8-input-text {
+  flex: 1;
+}
+
+.p8-inputs .p8-input-remove {
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0 0.2rem;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.p8-input-box textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.p8-input-sides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0;
+}
+
+.p8-input-sides button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.p8-input-sides .p8-input-side-on {
+  background: var(--side);
+  border-color: var(--side);
+  color: #fff;
+  font-weight: 600;
+}
+
+.p8-input-sides .p8-input-side-on:hover:not(:disabled) {
+  background: var(--side);
+  filter: brightness(0.92);
+}
+
+.p8-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.p8-input-actions button {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.7rem;
+}
+
+.p8-input-actions .p8-primary {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.p8-input-actions .p8-primary:hover:not(:disabled) {
+  background: #333;
+}
+
+.p8-input-actions .p8-primary:disabled {
+  background: #bbb;
+  border-color: #bbb;
+}
+
+.p8-input-actions .p8-link-button,
+.p8-add-input {
+  border: none;
+  background: none;
+  color: #2a5caa;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.p8-add-input {
+  font-size: 0.82rem;
+}
+
+/* Count of inputs on a node's "+". */
+.p8-add-count-bg {
+  fill: #1a1a1a;
+}
+
+.p8-add-count {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #fff;
+}
+
+/* The "+" pop-up: a speech bubble over the canvas, opened below, above or
+   beside its node (never over it). --arrow is where the arrow sits along the
+   edge facing the node. */
+.p8-popover {
+  position: absolute;
+  z-index: 5;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  padding: 0.6rem 0.7rem 0.7rem;
+  cursor: default;
+}
+
+/* Anchored by its bottom edge to the node's top. */
+.p8-popover-above {
+  transform: translateY(-100%);
+}
+
+.p8-popover::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+}
+
+.p8-popover-below::before {
+  left: calc(var(--arrow) - 7px);
+  top: -7px;
+  transform: rotate(45deg);
+}
+
+.p8-popover-above::before {
+  left: calc(var(--arrow) - 7px);
+  bottom: -7px;
+  transform: rotate(225deg);
+}
+
+.p8-popover-right::before {
+  top: calc(var(--arrow) - 7px);
+  left: -7px;
+  transform: rotate(-45deg);
+}
+
+.p8-popover-left::before {
+  top: calc(var(--arrow) - 7px);
+  right: -7px;
+  transform: rotate(135deg);
+}
+
+.p8-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.p8-popover-close {
+  border: none;
+  background: none;
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.p8-popover-topic {
+  font-size: 0.78rem;
+  color: #666;
+  margin: 0.15rem 0 0.5rem;
+}
+
+/* Long input lists scroll inside the bubble; the bubble itself doesn't, so
+   its arrow isn't clipped. */
+.p8-popover .p8-inputs {
+  max-height: 140px;
+  overflow-y: auto;
 }

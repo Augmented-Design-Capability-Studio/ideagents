@@ -22,19 +22,27 @@ no calls: the **Targa roof**. The fixed steel bar has to stay, so where does
 the roof go in a rear-engine 2+2? Three futures grow from the root:
 
 - **Under the rear window** (the marked line) — the rear glass lifts, the roof
-  folds over the bar and stows beneath it, glass closes; bounded to a parked
-  car with pinch sensing. Settled — this is today's Targa approach. Its
-  siblings show why: stacking the roof on a fixed glass dead-ends on rear
-  visibility, and sliding panels under a fixed glass goes in circles over
-  space that isn't there.
+  folds over the bar and stows beneath it, the glass closes; bounded to a
+  parked car with pinch sensing, then argued down through sealing (locating
+  pins), wear (swappable bushes) and assembly (fixture-pressed bushes) until it
+  settles — today's Targa approach. Its siblings show why: stacking the roof on
+  a fixed glass, a hand-lifted glass, soft seals and opening on the move all
+  dead-end, and sliding panels under a fixed glass goes in circles.
 - **By hand, in the front trunk** — the 1960s approach, refined to a folding
-  carbon panel in a sleeve. Settled as a purist's option; a roll-up fabric roof
-  dead-ends at speed.
+  carbon panel, then argued through latch tolerances, line time and service
+  until it settles as a purist's option. A roll-up fabric roof dead-ends at
+  speed.
 - **Hidden over the engine** — dead-ends on service access, or drifts into a
-  bar so thick it stops being a Targa.
+  bar so thick it stops being a Targa. The designer **kept going past that
+  drift** to try a slimmer housing (rolled roof in rear buttresses), which
+  then dead-ends on rollover safety and bracket cost — showing the override.
 
-It's built to the same rules as a live game — levels step down one at a time,
-"settled" only at Detail, stopped nodes aren't debated, and each point comes
+33 nodes, so the overview has a shape worth looking at.
+
+It's built to the same rules as a live game — each branch stays at a level until
+it's viable (two concept rounds on the main line and the trunk-panel line),
+levels step down one at a time,
+"settled" only at Detail, stopped nodes aren't debated unless you kept going, and each point comes
 from the opponent's expertise (packaging, service, manufacturing, safety) — and
 is checked against those rules in code. It's an ordinary tree, so with a key
 you can develop on from any open node. The data is in `src/prototype8-1/demo.ts`.
@@ -74,8 +82,8 @@ switching a setting partway and comparing the two branches a usable move.
    requirement that stops the debate collapsing into two symmetrical paragraphs
    of nothing. The same call also returns a **suggested winner** with a
    one-line reason — a neutral judge's read of which argument held up better.
-3. Each of the three outcomes — Skeptic wins, Synthesis, Proponent wins — has
-   its own card in the panel. **Develop** any of them into a child node, and
+3. Each of the three outcomes — Opponent wins, Synthesis, You win — has its
+   own row in the panel. **Develop** any of them into a child node, and
    **mark one as the winner**. The two are separate: you can develop all three
    to compare them before deciding, and marking a winner costs no call. The
    suggestion is only ever shown as a tag; it never marks the winner for you.
@@ -126,9 +134,8 @@ Each node also reports **`carriedForward`** — what from the previous version i
 still true — written *before* `whatChanged` so the model has to commit to
 continuity first. If it can't name anything substantial that survived, it has
 replaced the idea, and the prompt tells it to rewrite the state closer to the
-parent. Both fields show in the panel, continuity in green and change in
-violet, so a branch that has quietly become a different idea is visible rather
-than silent.
+parent. Both feed the drifted stop condition. (They're kept on every node but
+not shown in the simplified panel for now.)
 
 **The failure mode to watch** is drift. Because each node rewrites the whole
 idea rather than patching it, a commitment made three moves back can quietly
@@ -139,7 +146,7 @@ every node is partly so that drift is visible rather than buried in a panel.
 
 ## Sketches
 
-Each node has a **Sketch this idea** button in the panel. It asks the image
+Each node has a picture button on the bottom-left corner of its card. It asks the image
 model for a loose marker-style concept sketch of that node's idea state —
 deliberately a sketch rather than a render, so it reads as something to think
 with and doesn't overclaim precision.
@@ -175,7 +182,7 @@ uses the same plumbing).
 
 ## Playing out futures
 
-**Play out futures** (in the tree's title bar, and under Outcomes in the panel)
+**Play out futures** (in the tree's title bar)
 works from the **selected** node. It develops all three of its outcomes, then
 **branches at every step**: each new node develops two outcomes — its suggested
 winner and a contrasting one (Skeptic ↔ Proponent; Synthesis pairs with
@@ -200,28 +207,31 @@ step — is sketched automatically, so a play-out adds three images, not twelve.
 A develop already in flight for the same node and outcome is shared, so a
 future and a click on the same dot can't create two children for one outcome.
 
-## Levels: broad first, specific later
+## Levels: concept until viable, then embodiment, then detail
 
-Early debates tend to be over the top — arguing tolerances before anyone has
-agreed what the idea is for. So every node has a **level**:
+Early debates tend to be over the top — arguing tolerances before anyone knows
+whether the concept holds up. So every node has a **level**:
 
 | Level | Considerations are about |
 |---|---|
-| **Direction** | What the idea is, who it's for, the overall strategy |
-| **Concept** | How it works — the main mechanism or principle |
+| **Concept** | How it works — the main principle, and whether it holds up at all |
 | **Embodiment** | Form, layout, materials, how the parts fit together |
 | **Detail** | Manufacturing, cost, tolerances, edge cases, failure modes |
 
-The root always starts at Direction. Each develop call is told the current
-level and which levels the next consideration may take; the model moves down
-a level when nothing big is left to argue at this one. Code enforces the rules
-whatever the model says: a branch only ever moves down **one level at a
-time**, never back up, and after **three considerations in a row at one
-level** it must move down. The debate prompt is told the level too, so a
-Direction debate argues strategy and a Detail debate gets concrete.
+The root is the **original idea**. A branch then **stays at a level for as
+many rounds as it takes to become viable there** — a series of concept nodes,
+each arguing another concept-level point — and only moves down once the model
+judges the idea viable at that level. Code holds the rules whatever the model
+says: a branch moves down **one level at a time**, never back up, and **six
+rounds at one level without becoming viable** stops it as going in circles.
+The debate prompt is told the level too, so a concept debate argues whether
+the principle holds and a detail debate gets concrete.
 
-The level shows on each node ("IDEA · CONCEPT"), and an edge that moves down
-a level is labelled with it ("Synthesis · ↓ Embodiment").
+**The canvas is divided into horizontal bands** — Original idea, Concept,
+Embodiment, Detail — labelled once on the left. A node sits in its level's
+band, and a series of same-level nodes stacks down inside it, so a node never
+needs to say its level. That (and dropping the edge labels — outcome colour
+and weight carry them) frees a lot of space on every card.
 
 ## Stop conditions
 
@@ -240,18 +250,33 @@ washed in the stop's colour with a thick border, and a solid banner with a
 symbol (✓ settled, ✕ dead end, ↯ drifted, ↻ going in circles, ‖ depth limit)
 replaces the debate point, with the one-line reason under it. The symbols keep
 the kinds apart zoomed out or in greyscale; dead ends also recede slightly so
-settled endings draw the eye first. It **isn't debated** — that call is saved — and it has no dots or
-`+`, so nothing grows from it. **Keep going anyway** in the panel overrides
-the stop: the node is debated and the branch can grow again.
+settled endings draw the eye first. It **isn't debated** — that call is saved — and it has no dots, so nothing
+grows from it. **Keep going anyway** in the panel overrides the stop: the node
+is debated and the branch can grow again. Adding your own input (below) with
+**Add & keep going** does the same, with your input in the debate.
 
 ## Tracing how an idea got here
 
 Selecting a node highlights its **lineage** on the canvas — its path from the
 root (also drawn as a soft band under the edges) and every node that grew from
-it — and fades everything else, and the
-panel lists it under **How it got here**: every version of the idea with its
-level, and between each, which outcome won on which point. Each step is
-clickable. It costs no calls — it's read straight off the tree.
+it — and fades everything else. It costs no calls — it's read straight off the
+tree.
+
+## The node panel
+
+Deliberately short, three parts:
+
+- **Sketch** — the node's sketch, if it has one.
+- **Debate topic** — the point the opponent is picking on, phrased as a
+  question to argue ("Will the hinge leak?") and labelled with who raised it,
+  with the **outcome** right under it: for an open node, a row per outcome to
+  mark the winner (☆/★) and develop or go to it, with the suggested one tagged;
+  for a stopped node, the stop and why, and **Keep going anyway**.
+- **Debate** — each side's one-line claim ("You" and "Opponent"); the full
+  argument and what would change its mind are collapsed underneath.
+
+The full idea state, carried-forward and what-changed text, level and note
+are kept on each node but not shown for now.
 
 ## The call pipeline
 
@@ -260,7 +285,7 @@ Two calls per node, and nothing is ever recomputed.
 | Action | Calls |
 |---|---|
 | Start a game | **2** — root consideration, then its debate |
-| `+` on a node | **2** — develop the child, then debate it |
+| Adding your input | **0** to store it, **1** to re-argue or keep going |
 | Play out futures | **up to ~42** — 21 nodes × 2, four at a time; fewer if branches stop |
 | "Develop this outcome" in the panel, or clicking an open dot | **2** — develop the child, then debate it straight away |
 | Selecting any node, marking a winner, switching branches | **0** |
@@ -287,11 +312,33 @@ marked the Proponent as winner, developed that branch, then changed your mind,
 the Proponent branch stays — dimmed, still clickable, still developable.
 Switching back costs no model calls.
 
-**Develop from anywhere.** Every node has a `+` on its bottom-right corner that
-develops its winner (or the suggested winner if you haven't marked one), and
-the panel has a per-outcome button that either develops that outcome or jumps
-to the branch if it already exists. You can grow a branch that didn't win
-deliberately — that's often the point.
+**Develop from anywhere.** Every node's coloured dots, and the per-outcome
+rows in the panel, develop that outcome or jump to the branch if it already
+exists. You can grow a branch that didn't win deliberately — that's often the
+point.
+
+## Adding your own expertise
+
+The `+` on each node's bottom-right corner — stopped nodes included — opens a
+**pop-up right there on the canvas** (it follows the node as you pan and zoom,
+and closes on ✕, Cancel, Escape, a second click on `+`, or a click on empty
+canvas). It lists the node's inputs so far, and you write what you know (a test result, a constraint,
+a past project) and say whether it **supports you**, **supports the
+opponent**, or is **just context**. Then:
+
+- **Add & re-argue** (open node) reruns that node's debate with your input in
+  it: the side it supports must build on it, the other side must answer it,
+  and the suggested winner can change. Your marked winner and already
+  developed branches are kept.
+- **Add & keep going** (stopped node) overrides the stop and argues it with
+  your input.
+- **Add** just stores it, with no call.
+
+Either way, your input **carries down the branch**: every later debate and
+develop call on that path gets it as expert evidence, so a point you made at
+the concept level still constrains the detail. The `+` shows how many inputs a
+node has, and each can be removed from the pop-up. This is how the game gathers
+the designer's expertise rather than only the model's.
 
 ## Who is arguing
 
@@ -308,7 +355,7 @@ and the outcomes read **You win / Synthesis / Opponent wins**.
 The pair is passed to every prompt, not just the debate. In particular, each
 point up for debate is **raised from inside the opponent's expertise** — a
 manufacturing engineer gets tooling, assembly and volume; a cost accountant
-gets unit cost and margin — at the current level, so at Direction it's the
+gets unit cost and margin — at the current level, so at Concept it's the
 broad version of their question ("can this be built at volume at all?") and
 the specific version later. Before this, the point was written without knowing
 who would argue it, so a manufacturing engineer could end up debating market
@@ -332,10 +379,9 @@ height varies a lot — a sketched node is around 90px taller than an un-sketche
 one — and a uniform pitch made tall nodes collide with the row below.
 
 **Overview** (the Detail / Overview switch in the toolbar) is a separate,
-compact layout rather than a zoom: every node becomes a small card showing
-only its level, its one-line summary and — if its branch stopped — the stop's
-tint, border and symbol, and the tree is packed far more tightly. Edge labels
-drop out; colour and weight carry them. The view fits the whole tree on entry
+compact layout rather than a zoom: every node becomes a small one-line card —
+its summary and, if its branch stopped, the stop's tint, border and symbol —
+inside the same level bands, packed far more tightly. The view fits the whole tree on entry
 (and **Fit** does it again). Clicking a card selects it, with the same lineage
 fade; double-clicking opens it in the detailed view. Hover shows the full text.
 
@@ -375,7 +421,7 @@ spinner in the dot while it works), a filled one jumps to its branch.
 
 Every new node is **debated as soon as it's created**, however it was made, so
 it's ready to rule on by the time you get to it. A debate already in flight for
-a node is shared, so `+` and playing out futures asking for the same one don't start a
+a node is shared, so a click and playing out futures asking for the same one don't start a
 second call.
 
 A note for anyone extending this: panning deliberately tracks pointer moves on
@@ -395,7 +441,7 @@ wilder one.
   the forced falsifier are the mitigations; if the debates still read as bland,
   that's the first thing to tune in `prompts/debate-system.txt`.
 - **The suggested winner is one model's opinion.** It's there to break the
-  blank-page moment and to steer `+` and playing out futures, not to stand in for your
+  blank-page moment and to steer playing out futures, not to stand in for your
   judgement — which is why it never marks the winner itself.
 - **Cost grows with the tree.** See the pipeline below. Expansion is on demand
   and playing out futures is capped at three steps (21 nodes).

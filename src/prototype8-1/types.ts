@@ -22,15 +22,15 @@ export const OUTCOME_COLORS: Record<Outcome, string> = {
   proponent: "#2e9e44",
 };
 
-// The idea develops from broad to specific. Early debates are about what the
-// idea is for; detailed ones only make sense once that's settled — arguing
-// tolerances before the direction is agreed is the "over the top" failure.
-export type Level = "direction" | "concept" | "embodiment" | "detail";
+// The idea develops from broad to specific: argue the concept until it's
+// viable, then its embodiment, then the detail — arguing tolerances before the
+// concept holds up is the "over the top" failure. The root (the original idea)
+// sits at concept level but is drawn in its own band.
+export type Level = "concept" | "embodiment" | "detail";
 
-export const LEVELS: Level[] = ["direction", "concept", "embodiment", "detail"];
+export const LEVELS: Level[] = ["concept", "embodiment", "detail"];
 
 export const LEVEL_LABELS: Record<Level, string> = {
-  direction: "Direction",
   concept: "Concept",
   embodiment: "Embodiment",
   detail: "Detail",
@@ -39,8 +39,7 @@ export const LEVEL_LABELS: Record<Level, string> = {
 // What a consideration at each level is about. Shown in the panel and passed
 // to the prompts verbatim, so the UI and the model share one definition.
 export const LEVEL_FOCUS: Record<Level, string> = {
-  direction: "what the idea is, who it's for, and the overall strategy — not how it works",
-  concept: "how it works — the main mechanism or principle, not its exact form",
+  concept: "how it works — the main mechanism or principle, and whether it holds up at all — not its exact form",
   embodiment: "form, layout, materials, and how the parts fit together",
   detail: "manufacturing, cost, tolerances, edge cases, and failure modes",
 };
@@ -98,9 +97,31 @@ export interface Debate {
   suggestionReason: string;
 }
 
-export interface Consideration {
-  title: string;
+// Something the designer adds to a node's debate from their own expertise —
+// the way the game gathers what they know. It says which side it helps, so
+// the debate can be re-argued with it: the side it supports must use it, the
+// other must answer it. It also carries down the branch to every later call.
+export type InputSide = "pro" | "con" | "context";
+
+export const INPUT_SIDE_LABELS: Record<InputSide, string> = {
+  pro: "Supports you",
+  con: "Supports the opponent",
+  context: "Just context",
+};
+
+export interface DesignerInput {
+  id: string;
   text: string;
+  side: InputSide;
+}
+
+export interface Consideration {
+  // The debate topic, as a short question.
+  title: string;
+  // What the opponent is picking on, and why.
+  text: string;
+  // Who picked on it — the opponent's role. Empty when unknown.
+  raisedBy: string;
   // "perspective" | "improvement" | "tension" | "assumption" — free-form, used
   // only as a label.
   kind: string;
@@ -155,6 +176,8 @@ export interface IdeaNode {
   developing: Outcome[];
   // Designer's note on this node.
   note: string;
+  // The designer's own input to this node's debate, oldest first.
+  inputs: DesignerInput[];
   // A concept sketch of the idea at this node, as a data URL. Only the root and
   // the ends of played-out futures are sketched automatically; the rest are on
   // demand, since it's an extra (and slow) call per node.

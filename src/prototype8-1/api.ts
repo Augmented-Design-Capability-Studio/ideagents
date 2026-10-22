@@ -1,6 +1,6 @@
 import { callGemini, generateImage, parseJSON } from "../shared/gemini";
 import { getImageModel, getModel } from "../shared/storage";
-import { debaterPair, MAX_DEPTH, RADICALITY_LABELS, TEMPERATURE } from "./config";
+import { debaterPair, MAX_DEPTH, MAX_PER_LEVEL, RADICALITY_LABELS, TEMPERATURE } from "./config";
 import rootSystem from "./prompts/root-system.txt?raw";
 import debateSystem from "./prompts/debate-system.txt?raw";
 import developSystem from "./prompts/develop-system.txt?raw";
@@ -22,11 +22,15 @@ function str(v: unknown, fallback = ""): string {
   return typeof v === "string" && v.trim() ? v.trim() : fallback;
 }
 
-function toConsideration(raw: unknown): Consideration {
+// An assigned opponent is the raiser by definition; with "let the model
+// choose", the model names whoever it picked.
+function toConsideration(raw: unknown, pairId: string): Consideration {
   const c = (raw ?? {}) as Record<string, unknown>;
+  const pair = debaterPair(pairId);
   return {
     title: str(c.title, "Consideration"),
     text: str(c.text, "No consideration text returned."),
+    raisedBy: pair.id === "auto" ? str(c.raisedBy) : pair.con.role,
     kind: str(c.kind, "perspective"),
   };
 }
@@ -54,6 +58,27 @@ function evolutionSummary(path: IdeaNode[]): string {
         }`
     )
     .join("\n");
+}
+
+// The designer's own input anywhere on this path. It's expert knowledge from
+// the person running the game, so it carries down the branch: a point made at
+// the concept level still constrains the detail.
+function inputsBrief(path: IdeaNode[]): string {
+  const lines: string[] = [];
+  for (const n of path) {
+    for (const input of n.inputs) {
+      const side =
+        input.side === "pro"
+          ? "supports you (the Proponent)"
+          : input.side === "con"
+            ? "supports the opponent (the Skeptic)"
+            : "context";
+      lines.push(`- On "${n.consideration.title}" — ${side}: ${input.text}`);
+    }
+  }
+  return lines.length > 0
+    ? `The designer's own expert input on this path (treat as evidence from someone who knows):\n${lines.join("\n")}`
+    : "";
 }
 
 function pathSummary(path: IdeaNode[]): string {
@@ -100,7 +125,9 @@ export async function generateRoot(
     `Seed idea:\n${seed}`,
     sidesBrief(pairId),
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const text = await callGemini(apiKey, getModel(), rootSystem, user, {
     temperature: TEMPERATURE,
     json: true,
@@ -108,7 +135,7 @@ export async function generateRoot(
   const raw = parseJSON<Record<string, unknown>>(text);
   return {
     ideaSummary: str(raw.ideaSummary),
-    consideration: toConsideration(raw.consideration),
+    consideration: toConsideration(raw.consideration, pairId),
   };
 }
 
@@ -126,9 +153,12 @@ export async function runDebate(
     `Consideration point under debate:\n${node.consideration.title} — ${node.consideration.text}`,
     `Level of this consideration: ${node.level} — ${LEVEL_FOCUS[node.level]}`,
     `Path so far:\n${pathSummary(path.slice(0, -1))}`,
+    inputsBrief(path),
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
     sidesBrief(pairId),
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const text = await callGemini(apiKey, getModel(), debateSystem, user, {
     temperature: TEMPERATURE,
@@ -196,25 +226,22 @@ export async function developOutcome(
   if (!node.debate) throw new Error("Run the debate before developing an outcome.");
 
   const levels = levelOptions(path);
-  const allowed: Level[] = levels.mustDescend
-    ? [levels.next as Level]
-    : levels.next
-      ? [levels.current, levels.next]
-      : [levels.current];
+  const allowed: Level[] = levels.next ? [levels.current, levels.next] : [levels.current];
   const levelBrief = [
-    `Current level: ${levels.current} — ${LEVEL_FOCUS[levels.current]} (${levels.countAtLevel} consideration${
+    `Current level: ${levels.current} — ${LEVEL_FOCUS[levels.current]} (${levels.countAtLevel} round${
       levels.countAtLevel === 1 ? "" : "s"
     } argued at this level so far on this path)`,
-    levels.mustDescend
-      ? `You MUST move down: the new consideration goes at ${levels.next} — ${
-          LEVEL_FOCUS[levels.next as Level]
-        }`
-      : `The new consideration may sit at: ${allowed.join(" or ")}`,
+    levels.next
+      ? `Stay at ${levels.current} unless the idea is now VIABLE at this level; only then move to ${
+          levels.next
+        } — ${LEVEL_FOCUS[levels.next]}`
+      : `This is the last level; stay at ${levels.current}.`,
   ].join("\n");
 
   const user = [
     `Design problem:\n${problem}`,
     `How the idea has evolved so far:\n${evolutionSummary(path)}`,
+    inputsBrief(path),
     `The idea as it stands now (the version you are developing):\n${node.ideaState}`,
     `Consideration point:\n${node.consideration.title} — ${node.consideration.text}`,
     `Proponent (${node.debate.pro.speaker}): ${node.debate.pro.claim}\n${node.debate.pro.argument}`,
@@ -224,7 +251,9 @@ export async function developOutcome(
     sidesBrief(pairId),
     `Considerations already raised on this path (do not repeat):\n${pathSummary(path)}`,
     `Radicality level: ${radicality} of 5 — ${RADICALITY_LABELS[radicality]}`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const text = await callGemini(apiKey, getModel(), developSystem, user, {
     temperature: TEMPERATURE,
@@ -243,20 +272,29 @@ export async function developOutcome(
     ideaSummary: str(raw.ideaSummary),
     carriedForward,
     whatChanged: str(raw.whatChanged),
-    consideration: toConsideration(raw.consideration),
+    consideration: toConsideration(raw.consideration, pairId),
     level,
-    stop: decideStop(raw, level, carriedForward, node.depth + 1),
+    stop: decideStop(
+      raw,
+      level,
+      carriedForward,
+      node.depth + 1,
+      // Rounds at this level including the new node, if it stayed.
+      level === levels.current ? levels.countAtLevel + 1 : 1
+    ),
   };
 }
 
 // The model's stop judgement, with the rules that hold regardless of what it
 // says: "settled" only means something at detail level, an empty
-// carriedForward is drift by definition, and depth is capped.
+// carriedForward is drift by definition, too many rounds at one level without
+// becoming viable is going in circles, and depth is capped.
 function decideStop(
   raw: Record<string, unknown>,
   level: Level,
   carriedForward: string,
-  depth: number
+  depth: number,
+  roundsAtLevel: number
 ): { reason: StopReason; note: string } | null {
   const note = str(raw.statusReason);
   const status = raw.status;
@@ -269,6 +307,12 @@ function decideStop(
   }
   if (status === "dead_end" || status === "drifted" || status === "circling") {
     return { reason: status, note };
+  }
+  if (roundsAtLevel > MAX_PER_LEVEL) {
+    return {
+      reason: "circling",
+      note: `${MAX_PER_LEVEL} rounds at the ${level} level without becoming viable.`,
+    };
   }
   if (depth >= MAX_DEPTH) {
     return { reason: "depth_limit", note: `Reached the ${MAX_DEPTH}-step limit for one branch.` };

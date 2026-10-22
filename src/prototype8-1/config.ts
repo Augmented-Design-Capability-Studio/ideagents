@@ -30,13 +30,13 @@ export const FUTURE_NODES = Array.from(
 // Model calls allowed in flight at once, across the whole prototype.
 export const MAX_CONCURRENT_CALLS = 4;
 
-// A level is never skipped (a branch moves down at most one level per node)
-// and can hold at most this many considerations on a path before the branch
-// is made to move down, so it can't stall at the broad level forever.
-export const MAX_PER_LEVEL = 3;
+// A branch stays at a level for as many rounds as it takes to become viable
+// there, and only then moves down one level. This many rounds at one level
+// without becoming viable stops the branch as going in circles.
+export const MAX_PER_LEVEL = 6;
 
 // Hard cap on how deep any branch goes, whatever the model says.
-export const MAX_DEPTH = 10;
+export const MAX_DEPTH = 16;
 
 // Sketches run beside the develop/debate pipeline, several at a time. Kept
 // low because image calls are the slowest and most rate-limited of the three.

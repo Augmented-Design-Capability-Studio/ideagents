@@ -15,13 +15,13 @@ raises unit cost and margin; a safety assessor raises failure modes. A point
 outside the opponent's expertise makes a debate where neither side has
 standing.
 
-Raise it at the DIRECTION level: what the idea is, who it is for, and the
-overall strategy — not how it works or how it is built. The game moves from
-broad to specific, and detailed questions come later once the direction is
-argued out. A consideration about dimensions, materials or tolerances is too
-early here. Ask the BROAD version of the opponent's question: a manufacturing
-engineer at this level asks whether this direction can be built at volume at
-all, not about a tolerance.
+Raise it at the CONCEPT level: whether the idea's basic principle holds up at
+all — how it works, not its exact form. The game moves from broad to specific:
+the concept is argued until it is viable, then its embodiment, then the
+detail. A consideration about dimensions, materials or tolerances is too early
+here. Ask the BROAD version of the opponent's question: a manufacturing
+engineer at this level asks whether this can be built at volume at all, not
+about a tolerance.
 
 Pitch it at the radicality level you are given. At level 1, raise a small
 detail the designer could revisit without rethinking anything. At level 5,
@@ -37,21 +37,27 @@ smart person from outside the field should follow it on the first read.
 Respond with ONLY JSON (no prose, no markdown fence):
 {
   "ideaSummary": string,
-  "consideration": { "text": string, "title": string, "kind": string }
+  "consideration": { "text": string, "title": string, "kind": string, "raisedBy": string }
 }
 
 "ideaSummary" is the seed idea in ONE line, under 70 characters, plain words —
 it labels the idea on a small card, so it has to be readable at a glance.
 
-Write "text" FIRST: 1-2 short sentences stating the consideration.
+The point is something the OPPONENT is picking on. Write "text" FIRST: 1-2
+short plain sentences saying what the opponent is picking on and why it
+bothers them.
 
-Then write "title" as a 2-5 word label FOR EXACTLY THAT TEXT. The title must
-be a short restatement of the same concern — same subject, same worry. It is
-not a chance to raise a different angle or find a catchier phrase.
-  text: "Will people think thinner seats are less comfortable and less safe?"
-  GOOD title: "Thin seats feel unsafe"
-  BAD title: "Will thin seats feel cheap"  (cheapness is a different worry)
+Then write "title" as the DEBATE TOPIC: a short question (3-8 words) the two
+sides will argue, about EXACTLY that text — same subject, same worry. It is not
+a chance to raise a different angle or find a catchier phrase.
+  text: "Thinner seat backs might make people feel less protected in a crash."
+  GOOD title: "Will thin seats feel unsafe?"
+  BAD title: "Will thin seats feel cheap?"  (cheapness is a different worry)
+  BAD title: "Thin seats feel unsafe"  (a statement, not a question to argue)
 If the title and the text would name different concerns, rewrite the title,
 not the text.
+
+"raisedBy" is the opponent's role: the one in the user message, verbatim, or
+the stakeholder you chose if none was assigned.
 
 "kind" is one of "perspective", "assumption", "tension", "improvement".
