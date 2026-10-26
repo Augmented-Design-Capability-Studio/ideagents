@@ -1304,3 +1304,103 @@
   max-height: 140px;
   overflow-y: auto;
 }
+
+/* "+" on a node where input is wanted (the demo's staged dead end): a ring
+   pulses out from it to invite a click. */
+.p8-add-ring {
+  fill: none;
+  stroke: #2a5caa;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: p8-invite 1.6s ease-out infinite;
+}
+
+@keyframes p8-invite {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.p8-node-add-invite .p8-add-circle {
+  stroke: #2a5caa;
+  stroke-width: 1.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p8-add-ring {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+/* Demo-only hint card beside a staged dead end: dashed amber, so it reads as a
+   presenter's cue rather than part of the tool. */
+.p8-demo-hint {
+  position: absolute;
+  z-index: 4;
+  width: 290px;
+  background: #fffaf0;
+  border: 1.5px dashed #d99a2b;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0.65rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: default;
+}
+
+.p8-demo-hint::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--arrow) - 7px);
+  width: 11px;
+  height: 11px;
+  background: #fffaf0;
+  border-top: 1.5px dashed #d99a2b;
+  border-right: 1.5px dashed #d99a2b;
+}
+
+.p8-demo-hint-left::before {
+  right: -7px;
+  transform: rotate(45deg);
+}
+
+.p8-demo-hint-right::before {
+  left: -7px;
+  transform: rotate(-135deg);
+}
+
+.p8-demo-hint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.p8-demo-hint-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a86b00;
+}
+
+.p8-demo-hint p {
+  margin: 0.25rem 0 0.35rem;
+}
+
+.p8-demo-hint blockquote {
+  margin: 0 0 0.45rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid #e6c27a;
+  color: #333;
+}
+
+.p8-demo-hint-try {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.7rem;
+}

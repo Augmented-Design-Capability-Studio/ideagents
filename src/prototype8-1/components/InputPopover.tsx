@@ -21,16 +21,20 @@ const SIDE_COLORS: Record<InputSide, string> = {
 function InputBox({
   stopped,
   busy,
+  prefill,
   onAdd,
   onCancel,
 }: {
   stopped: boolean;
+  // Starting text and side, e.g. from the demo hint's "Try it" — still
+  // editable before adding.
+  prefill: { text: string; side: InputSide } | null;
   busy: boolean;
   onAdd: (input: { text: string; side: InputSide }, action: InputAction) => void;
   onCancel: () => void;
 }) {
-  const [text, setText] = useState("");
-  const [side, setSide] = useState<InputSide>("pro");
+  const [text, setText] = useState(prefill?.text ?? "");
+  const [side, setSide] = useState<InputSide>(prefill?.side ?? "pro");
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
@@ -88,6 +92,7 @@ export function InputPopover({
   placement,
   title,
   inputs,
+  prefill,
   stopped,
   busy,
   onAdd,
@@ -103,6 +108,7 @@ export function InputPopover({
   placement: "below" | "above" | "right" | "left";
   title: string;
   inputs: DesignerInput[];
+  prefill: { text: string; side: InputSide } | null;
   stopped: boolean;
   busy: boolean;
   onAdd: (input: { text: string; side: InputSide }, action: InputAction) => void;
@@ -152,7 +158,13 @@ export function InputPopover({
           ))}
         </ul>
       )}
-      <InputBox stopped={stopped} busy={busy} onAdd={onAdd} onCancel={onClose} />
+      <InputBox
+        stopped={stopped}
+        busy={busy}
+        prefill={prefill}
+        onAdd={onAdd}
+        onCancel={onClose}
+      />
     </div>
   );
 }

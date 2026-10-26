@@ -17,35 +17,58 @@ paste a Gemini API key. A sample problem and seed idea are pre-filled.
 
 ## Demo tree
 
-**Load demo tree** (next to Start) loads a pre-built tree with no API key and
-no calls: the **Targa roof**. The fixed steel bar has to stay, so where does
-the roof go in a rear-engine 2+2? Three futures grow from the root:
+**Load demo tree** loads a pre-built tree with no API key and no calls: the
+**Targa roof**. The fixed steel bar has to stay, and the original idea is
+already to **tuck the roof away under the rear glass** — so every debate is
+about *how*. Three approaches grow from it:
 
-- **Under the rear window** (the marked line) — the rear glass lifts, the roof
-  folds over the bar and stows beneath it, the glass closes; bounded to a
-  parked car with pinch sensing, then argued down through sealing (locating
-  pins), wear (swappable bushes) and assembly (fixture-pressed bushes) until it
-  settles — today's Targa approach. Its siblings show why: stacking the roof on
-  a fixed glass, a hand-lifted glass, soft seals and opening on the move all
-  dead-end, and sliding panels under a fixed glass goes in circles.
-- **By hand, in the front trunk** — the 1960s approach, refined to a folding
-  carbon panel, then argued through latch tolerances, line time and service
-  until it settles as a purist's option. A roll-up fabric roof dead-ends at
-  speed.
-- **Hidden over the engine** — dead-ends on service access, or drifts into a
-  bar so thick it stops being a Targa. The designer **kept going past that
-  drift** to try a slimmer housing (rolled roof in rear buttresses), which
-  then dead-ends on rollover safety and bracket cost — showing the override.
+- **Lift the glass and fold the roof back over the bar** — how today's Targa
+  actually works, but **staged to dead-end early**: the roof's linkage arms
+  have to swing through the fixed bar, and nothing the model knows gets a
+  mechanism through a fixed structure.
+- **Keep the glass fixed, slide the roof under it on rails** — argued down
+  through split and telescoping panels and a curved rail until it goes in
+  circles; its side branches drift (only half the roof opens) or dead-end
+  (adults no longer fit in the back).
+- **Drop the glass down into the body** — dead-ends on well depth, a split
+  glass and engine access, or drifts into a raised rear.
 
-33 nodes, so the overview has a shape worth looking at.
+### The staged dead end: expertise from another field reaches what the model couldn't
 
-It's built to the same rules as a live game — each branch stays at a level until
-it's viable (two concept rounds on the main line and the trunk-panel line),
-levels step down one at a time,
-"settled" only at Detail, stopped nodes aren't debated unless you kept going, and each point comes
-from the opponent's expertise (packaging, service, manufacturing, safety) — and
-is checked against those rules in code. It's an ordinary tree, so with a key
-you can develop on from any open node. The data is in `src/prototype8-1/demo.ts`.
+On the staged node the **`+` pulses**, and a **demo hint** card sits beside
+the node — dashed amber and labelled as a demo cue, deliberately apart from the
+product UI (the `+` pop-up itself carries no hint). It says the debate stalled
+there and offers an example of what the designer might know **from another
+field** — deliberately not about roofs, to show analogous thinking: an engineer
+who worked on aircraft landing gear, where the airframe never moves for the gear
+and only the fairing doors over the bay open to let the leg through. Could the
+bar work the same way? **Try it** opens the `+` pop-up pre-filled with it
+(still editable); ✕ dismisses the card. Then **Add & keep going**. (**Keep
+going anyway** on that node opens the same pop-up, since input is what unlocks
+it.)
+
+The branch then **plays out on screen**: the dead end is re-argued with the
+input — split the bar into structure and skin; only the skin moves — and the
+hidden nodes appear one by one (the parent's dot spins as each is developed,
+the new node pulses while it's argued): the bar's cover sections open like
+gear doors → two side flaps, hoop untouched → a sensor-gated sequence (glass,
+flaps, roof; parked, ~20 s) → reverse-on-fault for a jammed flap → the flap
+mechanism under a removable trim strip, where it **settles as the current
+design**: two side sections of the bar's cosmetic cover lift for the roof's
+linkage while the hoop stays fixed and the rear glass moves on its own
+mechanism. Running all three motions at once dead-ends, and lifting the whole
+cover drifts. The canvas follows the main line.
+
+In the demo this play-out is **pre-scripted** so it runs without a key and
+lands the same way every time; in a live game, adding input re-argues the node
+with real calls.
+
+It's built to the same rules as a live game — each branch stays at a level
+until it's viable, levels step down one at a time, "settled" only at Detail,
+stopped nodes aren't debated unless you kept going, every topic is a question
+from the opponent's expertise — and is checked against those rules in code,
+both before the input (14 nodes) and after it plays out (21). The data is in
+`src/prototype8-1/demo.ts`.
 
 ## The mapping
 

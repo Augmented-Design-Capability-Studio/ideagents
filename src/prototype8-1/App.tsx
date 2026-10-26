@@ -17,7 +17,7 @@ import {
   SAMPLES,
   debaterPair,
 } from "./config";
-import { buildDemoTree, DEMO_PAIR_ID, DEMO_PROBLEM, DEMO_SEED } from "./demo";
+import { buildDemoTree, DEMO_PAIR_ID, DEMO_PROBLEM, DEMO_SEED, type DemoStage } from "./demo";
 import { createLimiter } from "./limit";
 import {
   futurePicks,
@@ -58,6 +58,9 @@ export default function App() {
   const [playingFrom, setPlayingFrom] = useState<string | null>(null);
   // Whether the tree on screen is the pre-built demo rather than a live game.
   const [isDemo, setIsDemo] = useState(false);
+  // The demo's staged dead ends, keyed by node: what the designer's input
+  // unlocks there. Each plays out once and is then removed.
+  const [demoStages, setDemoStages] = useState<Record<string, DemoStage>>({});
 
   const selected = selectedId ? nodes[selectedId] : null;
 
@@ -123,6 +126,7 @@ export default function App() {
       };
       setNodes({ [id]: root });
       setIsDemo(false);
+      setDemoStages({});
       setRootId(id);
       setSelectedId(id);
       setFocus(null);
@@ -351,6 +355,10 @@ export default function App() {
     const node = nodes[nodeId];
     if (!node) return;
     const added: DesignerInput = { id: `in-${Date.now().toString(36)}`, ...input };
+    if (action !== "add" && demoStages[nodeId]) {
+      void playStage(nodeId, added);
+      return;
+    }
     const updated: IdeaNode = {
       ...node,
       inputs: [...node.inputs, added],
@@ -372,6 +380,64 @@ export default function App() {
     );
     setComposingFor(null);
     if (action !== "add") void ensureDebate(nodeId, { ...nodes, [nodeId]: updated });
+  };
+
+  // Plays out a staged demo dead end once the designer has added input there:
+  // the node is re-argued with the input, then the hidden branch appears node
+  // by node — developed, then debated — the way a live game would grow it,
+  // with the canvas following its main line. Pre-scripted, so no calls.
+  const playStage = async (nodeId: string, input: DesignerInput) => {
+    const stage = demoStages[nodeId];
+    if (!stage) return;
+    setDemoStages((prev) => {
+      const rest = { ...prev };
+      delete rest[nodeId];
+      return rest;
+    });
+    setComposingFor(null);
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    setNodes((prev) => ({
+      ...prev,
+      [nodeId]: {
+        ...prev[nodeId],
+        inputs: [...prev[nodeId].inputs, input],
+        resumed: true,
+        status: "debating",
+      },
+    }));
+    await wait(1200);
+    patchNode(nodeId, { debate: stage.debate, winner: stage.winner, status: "ready" });
+
+    const mainLine = new Set([nodeId]);
+    for (const node of stage.reveal) {
+      const parentId = node.parentId as string;
+      const from = node.fromOutcome as Outcome;
+      await wait(450);
+      setDeveloping(parentId, from, true);
+      await wait(800);
+      setNodes((prev) => ({
+        ...prev,
+        [parentId]: {
+          ...prev[parentId],
+          developing: prev[parentId].developing.filter((o) => o !== from),
+          childByOutcome: { ...prev[parentId].childByOutcome, [from]: node.id },
+        },
+        [node.id]: { ...node, debate: null, status: node.debate ? "debating" : "ready" },
+      }));
+      // Follow the line the designer would: each node's winner.
+      const parentWinner =
+        parentId === nodeId ? stage.winner : stage.reveal.find((n) => n.id === parentId)?.winner;
+      if (mainLine.has(parentId) && parentWinner === from) {
+        mainLine.add(node.id);
+        setSelectedId(node.id);
+        focusNode(node.id);
+      }
+      if (node.debate) {
+        await wait(900);
+        patchNode(node.id, { debate: node.debate, status: "ready" });
+      }
+    }
   };
 
   const handleRemoveInput = (nodeId: string, inputId: string) => {
@@ -525,6 +591,12 @@ export default function App() {
   const handleResume = (id: string) => {
     const node = nodes[id];
     if (!node) return;
+    // A staged demo dead end is unlocked by the designer's input, so "keep
+    // going" there opens the input pop-up instead.
+    if (demoStages[id]) {
+      handleOpenInput(id);
+      return;
+    }
     const resumed = { ...node, resumed: true };
     patchNode(id, { resumed: true });
     void ensureDebate(id, { ...nodes, [id]: resumed });
@@ -538,6 +610,7 @@ export default function App() {
     setSeed(DEMO_SEED);
     setPairId(DEMO_PAIR_ID);
     setNodes(demo.nodes);
+    setDemoStages(demo.stages);
     setRootId(demo.rootId);
     setSelectedId(demo.rootId);
     setFocus(null);
@@ -699,6 +772,9 @@ export default function App() {
               setComposingFor(null);
             }}
             composingFor={composingFor}
+            inputHints={Object.fromEntries(
+              Object.entries(demoStages).map(([id, stage]) => [id, stage.suggestedInput])
+            )}
             onOpenInput={handleOpenInput}
             onCloseInput={() => setComposingFor(null)}
             onAddInput={handleAddInput}

@@ -3,6 +3,7 @@ import type {
   Consideration,
   Debate,
   IdeaNode,
+  InputSide,
   Level,
   Outcome,
   StopReason,
@@ -10,29 +11,37 @@ import type {
 
 // A pre-built tree for demos: no API key, no calls, and the same shape a real
 // game produces — a branch stays at a level until it's viable there, then moves
-// down one step; "settled" only at
-// detail, stopped nodes aren't debated (unless the designer chose to keep
-// going), and every point is raised from the opponent's expertise. With a key,
-// any open node can be developed further.
+// down one step; "settled" only at detail; stopped nodes aren't debated
+// (unless the designer chose to keep going); every point is raised from the
+// opponent's expertise.
 //
-// The case: a Targa keeps its fixed steel bar, so where does the roof go? One
-// future is today's answer — the rear glass lifts, the roof passes over the
-// bar and stows beneath the glass. The others are the roads not taken.
+// The case: a Targa keeps its fixed steel bar, and the idea is already to tuck
+// the roof away under the rear glass — the debates are about how.
+//
+// One branch is STAGED. "Fold the roof back over the bar" is how today's Targa
+// works, but here it dead-ends early: the roof's linkage arms have to swing
+// through the fixed bar, and nothing the model knows gets past that. The
+// designer brings in an idea from ANOTHER field through "+" — landing-gear
+// doors: the airframe stays, only the fairings open — and the branch plays out
+// (pre-scripted, so the demo needs no key) to the actual design, where two side
+// sections of the bar's cosmetic cover lift for the arms while the hoop stays
+// fixed and the rear glass moves on its own mechanism. The point of the demo:
+// the designer's expertise, transferred by analogy, reaches the outcome the
+// model couldn't.
 
 export const DEMO_PAIR_ID = "designer-packaging";
 
 export const DEMO_PROBLEM =
-  "A Targa's fixed steel roll bar is its signature and part of its rollover protection, so it has to stay. But the roof between the windshield and the bar still needs to disappear for open-air driving — in a rear-engine 2+2 with almost no spare space.";
+  "A Targa's fixed steel roll bar is its signature and part of its rollover protection, so it has to stay. The roof between the windshield and the bar still has to disappear for open-air driving — in a rear-engine 2+2 with almost no spare space.";
 
 export const DEMO_SEED =
-  "Keep the fixed steel Targa bar, and make the roof section between the windshield and the bar retractable, so the car goes fully open-air without losing the bar.";
+  "Keep the fixed Targa bar and tuck the roof away under the rear glass when it's open, so the seats, the trunk and the engine bay all stay untouched.";
 
 const DESIGNER = "Designer";
 const PACKAGING = "Vehicle packaging engineer";
 const SERVICE = "Service technician";
 const MANUFACTURING = "Manufacturing engineer";
 const SAFETY = "Safety and compliance assessor";
-const COST = "Cost accountant";
 
 interface Spec {
   id: string;
@@ -43,865 +52,467 @@ interface Spec {
   summary: string;
   carried?: string;
   changed?: string;
-  // Who raised it is filled in by buildDemoTree.
+  // Who raised it is filled in by buildDemoTree unless given here.
   point: Omit<Consideration, "raisedBy">;
+  by?: string;
   debate?: Debate;
   winner?: Outcome;
   stop?: { reason: StopReason; note: string };
-  // The designer chose "keep going" past this node's stop.
-  resumed?: boolean;
   futureEnd?: boolean;
   note?: string;
+  // Hidden until the staged dead end above it gets the designer's input.
+  staged?: boolean;
+  // On the staged dead end: what unlocks it.
+  unlock?: Unlock;
+}
+
+interface Unlock {
+  // Offered in the "+" pop-up — the presenter can use it or say it their way.
+  suggestedInput: { text: string; side: InputSide };
+  // The debate this node gets once it's re-argued with the input.
+  debate: Debate;
+  winner: Outcome;
 }
 
 const SPECS: Spec[] = [
-  // ── Root ────────────────────────────────────────────────────────────────
+  // ── The original idea ───────────────────────────────────────────────────
   {
     id: "t0",
     parent: null,
     from: null,
     level: "concept",
     idea: DEMO_SEED,
-    summary: "Retractable roof ahead of a fixed Targa bar",
-    point: {
-      title: "Where can the roof go at all?",
-      text: "A rear-engine 2+2 has no empty space behind the cabin, and the fixed bar blocks the path a convertible roof normally takes. Is open air worth giving up seats or luggage?",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "The roof has to vanish, or it's just a big sunroof.",
-        "The Targa promise is open sky with the bar framing it. A roof that stays in view, or that owners wrestle with, breaks that. It's worth spending space on.",
-        "Owners in clinics ranking 'roof fully hidden' below 'keeps the rear seats'.",
-      ],
-      [
-        PACKAGING,
-        "Every litre for the roof comes out of seats, luggage or the engine bay.",
-        "Behind the bar sit the +2 seats, then the engine. The front trunk is the only free volume and it's small. Decide what you'll give up before drawing anything.",
-        "A stowage volume above the rear seats that clears head room and the engine lid.",
-      ],
-      "synthesis",
-      "Both are right that space is the real constraint — the move is to find volume that costs neither seats nor engine."
-    ),
-    winner: "synthesis",
-    note: "Space is the real constraint, not the mechanism.",
-  },
-
-  // ── You win: hide it over the engine ────────────────────────────────────
-  {
-    id: "t1",
-    parent: "t0",
-    from: "proponent",
-    level: "concept",
-    idea: "A fully automatic roof that disappears completely behind the bar at the push of a button, stowed over the engine lid so the cabin and rear seats stay untouched.",
-    summary: "Power roof that hides over the engine lid",
-    carried: "The fixed bar and a roof that fully disappears are both still there.",
-    changed: "Committed to a powered roof and picked the engine lid area as its home, closing off a manual option.",
-    point: {
-      title: "Can the roof live over the engine?",
-      text: "Stowing fabric and seals over a rear engine puts heat on the roof and a mechanism in the way of every service.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "Over the engine is the only place that costs no seats.",
-        "The cabin and the trunk stay exactly as they are. Heat and access are engineering problems; giving up the rear seats is a product problem.",
-        "Fabric heat tests showing the roof can't survive above the engine.",
-      ],
-      [
-        SERVICE,
-        "Then every oil change starts with taking off a roof.",
-        "The engine lid is how we reach the engine. Put a roof stack on it and routine service needs the roof mechanism removed or propped first.",
-        "A layout where the engine lid still opens fully with the roof stowed.",
-      ],
-      "skeptic",
-      "The access problem is concrete, and the designer's case doesn't answer it."
-    ),
-  },
-  {
-    id: "t1a",
-    parent: "t1",
-    from: "skeptic",
-    level: "concept",
-    idea: "Move the roof out of the engine area into a cassette built into a deeper, taller Targa bar, so the engine lid stays free.",
-    summary: "Roof cassette built into a thicker bar",
-    carried: "Still a powered roof that hides completely, still clear of the cabin.",
-    changed: "Moved the stowage into the bar itself, which now has to grow to hold the roof.",
-    point: {
-      title: "Won't the bar turn into a box?",
-      text: "To hold a folded roof, the bar has to grow far deeper and taller than today's slim hoop.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "drifted",
-      note: "The bar has become a roof housing — the slim Targa silhouette the seed set out to keep is gone.",
-    },
-    // The designer overrode the stop to see whether a slimmer housing works.
-    resumed: true,
-    debate: debate(
-      [
-        "Grow the bar backwards only and keep its front face slim.",
-        "What people see is the bar's front face against the sky. If the housing grows behind it, the silhouette from the side and front survives.",
-        "Renderings where the side view no longer reads as a Targa.",
-      ],
-      [
-        PACKAGING,
-        "A folded roof needs depth you only get by thickening the whole hoop.",
-        "The stack is as deep as the folded roof. Push it all behind the front face and the bar becomes a wedge running down to the engine lid.",
-        "A roof that rolls rather than folds, with a much smaller cross-section.",
-      ],
-      "synthesis",
-      "Rolling the roof instead of folding it could keep the face slim and shrink the housing."
-    ),
-    winner: "synthesis",
-    note: "Kept going past the drift to see if a slimmer housing could work.",
-  },
-  {
-    id: "t1a1",
-    parent: "t1a",
-    from: "synthesis",
-    level: "embodiment",
-    idea: "Keep the bar's slim front face and grow the housing rearward as two buttresses that hold a rolled fabric roof on a spring drum.",
-    summary: "Slim bar face, roof rolled into rear buttresses",
-    carried: "Still a roof housed at the bar, still clear of the engine lid.",
-    changed: "Swapped the folded stack for a rolled roof, so the housing could shrink into two buttresses.",
-    point: {
-      title: "Can the hoop carry the drum?",
-      text: "A rolled roof and its drum sit at roof height, raising the centre of gravity and loading the bar in a rollover.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "A rolled fabric roof weighs a few kilos.",
-        "It's fabric and a thin tube, not a hardtop. Spread over two buttresses, the extra mass at the bar is small.",
-        "Rollover simulation showing the hoop failing with the drum fitted.",
-      ],
-      [
-        SAFETY,
-        "Any mass on the hoop changes how it behaves in a rollover.",
-        "The bar is a safety structure. Hanging a drum and spring on it means re-proving the hoop, and the housing can't crush into the occupants' space.",
-        "A drum mounted so it breaks away cleanly before the hoop takes load.",
-      ],
-      "skeptic",
-      "The rollover case is a hard requirement, and the designer's answer is about weight, not load paths."
-    ),
-  },
-  {
-    id: "t1a1a",
-    parent: "t1a1",
-    from: "skeptic",
-    level: "embodiment",
-    idea: "Mount a lighter carbon drum on break-away brackets behind the hoop, so it shears off before the bar takes rollover load.",
-    summary: "Carbon drum on break-away brackets behind the hoop",
-    carried: "Same rolled roof in rear buttresses, slim bar face kept.",
-    changed: "Decoupled the drum from the hoop's load path, adding brackets designed to fail.",
-    point: {
-      title: "Can a bracket both hold and break?",
-      text: "A bracket designed to shear in a rollover also has to survive years of potholes and slammed doors without letting go.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "Tuned break-away parts are normal in crash structures.",
-        "Bonnets, mirrors and pedals already use parts that fail on purpose. This is the same idea applied to the drum.",
-        "Fatigue tests where the bracket cracks before its rated life.",
-      ],
-      [
-        MANUFACTURING,
-        "A part that has to both hold and break is hard to build consistently.",
-        "The break load has a narrow window. Normal casting variation puts some brackets too weak for daily loads and some too strong to shear.",
-        "A bracket process that holds the break load inside that window.",
-      ],
-      "skeptic",
-      "The bracket has to meet two opposite targets, and nothing yet shows it can."
-    ),
-  },
-  {
-    id: "t1a1a1",
-    parent: "t1a1a",
-    from: "skeptic",
-    level: "detail",
-    idea: "Machine the brackets from billet with a notched shear section to hold a tight break load, inspected one by one.",
-    summary: "Billet brackets with a notched shear section",
-    carried: "Same break-away drum behind the slim hoop.",
-    changed: "Moved the brackets to a slow, precise process to hit the break-load window.",
-    point: {
-      title: "Is a billet bracket affordable?",
-      text: "Machining and inspecting every bracket costs many times a cast part.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "The brackets cost more than the roof, and the hoop still needs re-proving — it can't meet the problem at volume.",
-    },
-    futureEnd: true,
-  },
-  {
-    id: "t1a1b",
-    parent: "t1a1",
-    from: "proponent",
-    level: "embodiment",
-    idea: "Make the buttresses structural, so the drum housing becomes part of the rollover hoop itself.",
-    summary: "Buttresses become part of the rollover hoop",
-    carried: "Rolled roof still lives in the buttresses.",
-    changed: "Turned the housing into structure, making the hoop much bigger.",
-    point: {
-      title: "Is it still a Targa?",
-      text: "Structural buttresses running down to the engine lid make the rear look like a fastback.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "drifted",
-      note: "Structural buttresses make this a fastback hardtop — not a Targa.",
-    },
-  },
-  {
-    id: "t1b",
-    parent: "t1",
-    from: "proponent",
-    level: "embodiment",
-    idea: "Keep the roof over the engine lid in an insulated tray that lifts together with the lid on a shared hinge, so service access survives.",
-    summary: "Insulated roof tray hinged with the engine lid",
-    carried: "The roof still hides over the engine, still fully automatic.",
-    changed: "Added a heat shield and tied the tray to the lid so access survives — at the cost of a heavy, complex lid.",
-    point: {
-      title: "Can anyone lift this lid?",
-      text: "With the roof stack on it, the engine lid weighs several times more and needs struts or motors to open safely.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "Every service now depends on the roof mechanism, and heat still shortens the fabric's life.",
-    },
-  },
-
-  // ── Opponent wins: take it off by hand ──────────────────────────────────
-  {
-    id: "t2",
-    parent: "t0",
-    from: "skeptic",
-    level: "concept",
-    idea: "A light roof panel the owner unlatches by hand and stores in the front trunk — the original 1960s Targa approach. Seats and engine bay stay untouched.",
-    summary: "Manual roof panel stored in the front trunk",
-    carried: "The fixed bar is untouched and the roof still comes off completely.",
-    changed: "Gave up a powered roof to keep seats and engine bay; luggage space pays instead.",
-    point: {
-      title: "Where does the luggage go?",
-      text: "A rigid panel wide enough to span the cabin takes most of the front trunk — the car's main luggage space.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "Some trunk on sunny days is a fair trade for simplicity.",
-        "No motors, no seals that age, nearly no weight. Owners who want a Targa want the open roof more than a weekend bag.",
-        "Owners saying they'd leave the panel at home rather than lose the trunk.",
-      ],
-      [
-        PACKAGING,
-        "A full-width panel leaves room for a backpack, not a weekend bag.",
-        "The panel's footprint is close to the whole trunk floor. Stored flat, it rules out the luggage the car is sold on carrying.",
-        "A panel that stores in under half the trunk volume.",
-      ],
-      "synthesis",
-      "A panel that folds smaller keeps the simplicity and gives back most of the trunk."
-    ),
-    winner: "synthesis",
-  },
-  {
-    id: "t2p",
-    parent: "t2",
-    from: "synthesis",
-    level: "concept",
-    idea: "A manual roof panel that folds smaller before it goes in the front trunk, so it keeps the simplicity and gives back most of the luggage space.",
-    summary: "Manual panel that folds smaller for the trunk",
-    carried: "Still manual, still stored up front, bar untouched.",
-    changed: "Committed to a panel that changes shape for storage, rather than a rigid one.",
-    point: {
-      title: "Does folding free the trunk?",
-      text: "A folded panel is half the footprint but twice as thick — it may still crowd out the luggage it was meant to make room for.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "Half the footprint is what matters in a deep, short trunk.",
-        "The trunk is deeper than it is wide. A panel folded in half can stand on edge or tuck under the lid, leaving the floor free for bags.",
-        "Luggage tests where a folded panel still blocks a standard bag.",
-      ],
-      [
-        PACKAGING,
-        "Folding trades footprint for thickness; the volume doesn't change.",
-        "The panel's volume is the same however you fold it. Unless it has its own place outside the luggage space, folding just moves the problem.",
-        "A storage spot for the folded panel that isn't luggage space at all.",
-      ],
-      "proponent",
-      "Folding is viable as a concept if the panel gets its own spot — that's an embodiment question."
-    ),
-    winner: "proponent",
-  },
-  {
-    id: "t2a",
-    parent: "t2p",
-    from: "proponent",
-    level: "embodiment",
-    idea: "A two-piece carbon panel that folds in half and slots into a sleeve under the front trunk lid, leaving the trunk floor free.",
-    summary: "Folding carbon panel in a sleeve under the trunk lid",
-    carried: "Still a manual, fully removable panel stored up front.",
-    changed: "Split the panel and gave it a dedicated sleeve, trading cost for most of the trunk back.",
-    point: {
-      title: "Will the hinge leak?",
-      text: "A folding panel puts a hinge across the roof — a new water and wind-noise path a one-piece panel didn't have.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "The hinge is small next to getting the trunk back.",
-        "A recessed hinge under a single overlapping seal is invisible and keeps the panel feeling solid. The trunk gain is what makes this usable day to day.",
-        "Water tests where the hinge line leaks under a pressure wash.",
-      ],
-      [
-        MANUFACTURING,
-        "A hinge across the roof is a leak waiting for the first car wash.",
-        "Two halves means two edges to hold in tolerance and a seal that has to bridge them. That's scrap and warranty risk on a part owners touch every week.",
-        "A seal design that bridges the hinge with a single moulded part.",
-      ],
-      "proponent",
-      "The hinge is solvable with a known seal design, and the trunk gain is real."
-    ),
-    winner: "proponent",
-  },
-  {
-    id: "t2a1",
-    parent: "t2a",
-    from: "proponent",
-    level: "detail",
-    idea: "Two carbon halves with a recessed piano hinge under one overlapping moulded seal, held by two over-centre latches at the windshield and the bar.",
-    summary: "Two carbon halves, one overlap seal, two latches",
-    carried: "Same folding panel and sleeve; the hinge is now answered by the seal.",
-    changed: "Fixed the seal and hinge details, closing off any powered option on this branch.",
-    point: {
-      title: "Can fixed latches fit every car?",
-      text: "Body tolerances mean the gap between windshield and bar varies car to car, so fixed latches pull some panels too tight and leave others loose.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "Two over-centre latches, set once at the factory.",
-        "Over-centre latches have enough travel to take up normal variation. Owners get a panel that clicks shut the same way every time.",
-        "End-of-line data showing cars outside the latch's travel.",
-      ],
-      [
-        MANUFACTURING,
-        "Some cars will be too tight to latch and others too loose to seal.",
-        "The windshield-to-bar gap stacks up from a dozen parts. Fixed latches can't follow that spread across a production run.",
-        "Latch travel that covers the full measured gap spread.",
-      ],
-      "synthesis",
-      "Keep two latches, but make them adjustable per car."
-    ),
-    winner: "synthesis",
-  },
-  {
-    id: "t2a1a",
-    parent: "t2a1",
-    from: "synthesis",
-    level: "detail",
-    idea: "Latches with an eccentric adjuster, set at the end of the line so each panel is tuned to its own car's gap.",
-    summary: "Adjustable latches tuned per car at end of line",
-    carried: "Same two latches and overlap seal.",
-    changed: "Added per-car adjustment, costing line time.",
-    point: {
-      title: "Is a minute per car worth it?",
-      text: "Tuning two latches on every car adds minutes at the end of the line.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "A minute per car buys a panel that seals for life.",
-        "A leaking roof is the complaint owners remember. A short adjustment is cheap next to warranty claims.",
-        "Warranty data showing manual roof leaks are rare anyway.",
-      ],
-      [
-        COST,
-        "A minute per car at Targa volumes is a real line cost.",
-        "End-of-line time is the most expensive time in the plant. Trial-and-error adjustment also varies by worker.",
-        "An adjustment done in one step, with no trial and error.",
-      ],
-      "proponent",
-      "The adjustment pays for itself if it can be made a single step."
-    ),
-    winner: "proponent",
-  },
-  {
-    id: "t2a1a1",
-    parent: "t2a1a",
-    from: "proponent",
-    level: "detail",
-    idea: "A gauge tool reads the car's gap and sets both eccentrics in one step, with the setting marked on the latch.",
-    summary: "One-step gauge sets each latch",
-    carried: "Same adjustable latches; now set in one step.",
-    changed: "Replaced trial and error with a gauge, adding a tool to the line.",
-    point: {
-      title: "Who resets it after a repair?",
-      text: "After a seal or windshield replacement, the latch setting no longer matches the car.",
-      kind: "improvement",
-    },
-    debate: debate(
-      [
-        "Ship the same gauge to dealers.",
-        "The tool that sets it at the factory resets it after a repair. One process, everywhere.",
-        "Dealers saying they won't stock a model-specific tool.",
-      ],
-      [
-        SERVICE,
-        "A special tool for one latch is a tool nobody can find.",
-        "Dealers already have a wall of model-specific tools. If this one's missing, the panel gets set by feel and leaks.",
-        "A setting the owner can check by eye without a tool.",
-      ],
-      "proponent",
-      "One gauge for factory and dealer keeps the setting consistent for the car's life."
-    ),
-    winner: "proponent",
-  },
-  {
-    id: "t2a1a1a",
-    parent: "t2a1a1",
-    from: "proponent",
-    level: "detail",
-    idea: "The same gauge ships in the dealer service kit, and the panel's sleeve carries a printed check card so owners can see if a latch needs resetting.",
-    summary: "Dealer gauge plus an owner check card",
-    carried: "Same gauge-set latches, folding carbon panel and sleeve.",
-    changed: "Extended the factory setting into service, closing the branch.",
-    point: {
-      title: "Will the check card last?",
-      text: "A printed card in the sleeve gets scuffed over years of use.",
-      kind: "improvement",
-    },
-    stop: {
-      reason: "settled",
-      note: "A light, simple option for purists — nothing left that would split two reasonable people.",
-    },
-    futureEnd: true,
-  },
-  {
-    id: "t2a1a2",
-    parent: "t2a1a",
-    from: "skeptic",
-    level: "detail",
-    idea: "Skip adjustment and fit a thicker, softer seal that takes up the gap spread on its own.",
-    summary: "Thicker seal instead of adjustable latches",
-    carried: "Same two latches and folding panel.",
-    changed: "Dropped adjustment, asking the seal to absorb the variation.",
-    point: {
-      title: "Will a soft seal hold at speed?",
-      text: "A seal soft enough to absorb the spread lets the panel lift and whistle at speed.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "circling",
-      note: "Back to the tolerance problem the adjusters were solving two steps ago.",
-    },
-  },
-  {
-    id: "t2a1b",
-    parent: "t2a1",
-    from: "skeptic",
-    level: "detail",
-    idea: "One latch at the windshield, with the panel's rear edge hooking under a lip on the bar.",
-    summary: "One latch, rear edge hooks under the bar",
-    carried: "Same folding panel and seal.",
-    changed: "Halved the latches to remove one adjustment.",
-    point: {
-      title: "Will the rear edge lift?",
-      text: "A hooked rear edge has no clamping force, so the seal at the bar relies on air pressure alone.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "One latch can't hold the bar end down at motorway speed.",
-    },
-  },
-  {
-    id: "t2b",
-    parent: "t2",
-    from: "skeptic",
-    level: "embodiment",
-    idea: "Replace the rigid panel with a fabric roof that rolls up into a small bag in the trunk.",
-    summary: "Roll-up fabric roof in a bag",
-    carried: "Still manual, still stored up front, bar untouched.",
-    changed: "Swapped rigid for fabric to save space, giving up a firm roof.",
-    point: {
-      title: "Will fabric stay taut at speed?",
-      text: "With no frame between the windshield and the bar, a fabric roof balloons and drums on the motorway.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "A frameless fabric roof can't stay taut at speed — fixing it means adding back the frame you removed.",
-    },
-  },
-
-  // ── Synthesis: under the rear window ────────────────────────────────────
-  {
-    id: "t3",
-    parent: "t0",
-    from: "synthesis",
-    level: "concept",
-    idea: "An automatic roof that stows in the space just behind the rear seats, under the rear window, so it costs neither the seats nor the engine bay.",
-    summary: "Power roof stowed under the rear window",
-    carried: "Fixed bar, a roof that disappears, rear seats and engine bay intact.",
-    changed: "Found a home for the roof above the rear seats instead of taking seats, trunk or engine.",
+    summary: "Roof tucks away under the rear glass",
     point: {
       title: "How does the roof get past the bar?",
-      text: "To reach the space under the rear window, the roof has to get past the fixed bar — and the rear glass is in the way.",
+      text: "The roof sits ahead of the fixed bar and has to end up behind it, under the rear glass — and both the bar and the glass are in the way.",
       kind: "tension",
     },
     debate: debate(
       [
-        "Move the glass, not the bar.",
-        "The rear window is the one thing in the path that can move. Let it get out of the way while the roof passes, and the bar never has to change.",
-        "A glass that can't lift far enough to clear a folded roof.",
+        "Lift the glass out of the way and fold the roof back over the bar.",
+        "The bar is the identity and the safety structure; it can't move. The rear glass can lift on its own, and the roof can travel over the bar into the space it leaves.",
+        "A roof path that can't get over the bar.",
       ],
       [
         PACKAGING,
-        "A moving rear window is a second mechanism, more seals, more weight.",
-        "You'd need hinges and drives for the glass on top of the roof's own. That's more parts packed into the same tight space behind the seats.",
-        "A glass hinge line that fits outside the roof's swept volume.",
+        "Moving the glass is a second big mechanism; move the roof around it instead.",
+        "Every mechanism behind the seats fights for the same few litres. A roof that slides under a fixed glass needs one drive, not two.",
+        "A glass motion that needs no more space than the roof's own.",
       ],
-      "proponent",
-      "Moving the glass is the only route that keeps the bar fixed and the space free."
+      "synthesis",
+      "Both have a case — try moving the glass, keeping it fixed, and moving it differently."
     ),
-    winner: "proponent",
   },
+
+  // ── You win: fold the roof back over the bar (STAGED — dead-ends until the
+  //    designer brings in an idea from another field)
   {
-    id: "t3p",
-    parent: "t3",
+    id: "a",
+    parent: "t0",
     from: "proponent",
     level: "concept",
-    idea: "The rear window becomes a moving gate: it gets out of the way while the roof passes over the fixed bar, then closes over the stowed roof.",
-    summary: "Rear window moves aside to let the roof pass",
-    carried: "The roof still stows under the rear window; the bar stays fixed.",
-    changed: "Made the rear glass a moving part, so the roof's path no longer has to go through it.",
+    idea: "The rear glass lifts on its own mechanism to open the well, and the roof's linkage folds the roof back over the bar into the well under the glass.",
+    summary: "Glass lifts; roof's linkage folds it back over the bar",
+    carried: "The roof still tucks under the rear glass; the bar stays fixed.",
+    changed: "Gave the glass its own mechanism and sent the roof back over the bar on a linkage.",
     point: {
-      title: "Where does the glass go?",
-      text: "While it moves, the glass needs a path of its own that clears the bar, the roof and the engine lid — there's little room up there.",
+      title: "Can the roof's arms get past the bar?",
+      text: "The roof's linkage arms pivot behind the bar, so as they swing the roof back their path runs straight through the bar itself — and the bar can't move.",
       kind: "tension",
     },
-    debate: debate(
-      [
-        "Up and back, over the engine lid — that space is free when parked.",
-        "The roof only moves with the car stopped, and above the engine lid there's nothing in the way. The glass can swing up and back on a long arm.",
-        "A hinge line that can't clear the bar at full lift.",
-      ],
-      [
-        PACKAGING,
-        "A long swing arc needs a hinge line we don't have yet.",
-        "The glass has to lift high enough for a folded roof to pass under it, without hitting the bar or the rear spoiler. That arc sets where the hinge goes.",
-        "A hinge position that clears the bar, the spoiler and the folded roof.",
-      ],
-      "proponent",
-      "The swing space exists when parked; the concept is viable, and the hinge is an embodiment question."
-    ),
-    winner: "proponent",
-    note: "Viable as a concept — move on to how it's built.",
+    by: PACKAGING,
+    stop: {
+      reason: "dead_end",
+      note: "The arms' path runs through the fixed bar, and nothing on this path lets a mechanism pass through a fixed structure.",
+    },
+    unlock: {
+      // Deliberately from another field: the point is analogous thinking, not
+      // a roof expert handing over the answer.
+      suggestedInput: {
+        side: "pro",
+        text: "I worked on landing gear for regional aircraft. The airframe never moves for the gear — only the fairing doors over the bay open to let the leg swing through, then close to restore the skin. Could the bar work the same way: the structure stays put, and only its cover opens where the arms pass?",
+      },
+      debate: debate(
+        [
+          "Split the bar into structure and skin — only the skin has to move.",
+          "Like landing-gear doors: the airframe stays, the fairing doors open for the leg and close behind it. The hoop stays fixed; only its cosmetic cover opens where the arms cross it.",
+          "Arm paths that cut through the hoop's structure, not just its cover.",
+        ],
+        [
+          PACKAGING,
+          "Then the question is how much of the cover has to move.",
+          "If the arms only cross the bar near its outer ends, two small sections of cover are enough. If they cross the middle, it's the whole bar — and that's not a fixed bar any more.",
+          "Arm paths that cross the bar across its full width.",
+        ],
+        "proponent",
+        "The designer's analogy separates what must stay fixed (the hoop) from what can move (its cover), which answers the objection."
+      ),
+      winner: "proponent",
+    },
   },
   {
-    id: "t3a",
-    parent: "t3p",
+    id: "a1",
+    parent: "a",
     from: "proponent",
-    level: "embodiment",
-    idea: "The whole rear window lifts up and back, the roof folds and travels over the fixed bar into the space behind the rear seats, and the glass closes back over it.",
-    summary: "Rear glass lifts, roof passes over the bar, glass closes",
-    carried: "The roof still stows under the rear window; bar and seats untouched.",
-    changed: "Committed to a moving rear window as the gate for the roof — a second large moving part.",
+    level: "concept",
+    staged: true,
+    idea: "The bar's structural hoop stays fixed; two side sections of its cosmetic cover lift, like landing-gear doors, to let the roof's linkage arms pass, then close behind them. The rear glass lifts on its own mechanism.",
+    summary: "Bar's cover sections open so the roof's arms can pass",
+    carried: "Same fixed hoop, lifting glass and over-the-bar roof path.",
+    changed: "Split the bar into a fixed structure and a cover that opens where the arms cross it.",
     point: {
-      title: "Is moving glass safe near heads?",
-      text: "A large glass panel swinging up behind the occupants creates pinch and impact risks, especially near the rear seats.",
+      title: "Does a moving cover weaken the bar?",
+      text: "The bar is rollover protection. Opening parts of it can look — to a regulator or an owner — like opening up the safety structure.",
       kind: "tension",
     },
     debate: debate(
       [
-        "Run it only when it's safe and it's no riskier than a tailgate.",
-        "Owners open the roof a few times a week, not while driving. A parked-only sequence keeps the drama of the glass lifting without the risk.",
-        "Clinic owners who expect to open the roof while moving.",
+        "Only the skin moves; the hoop underneath is untouched.",
+        "The load path runs through the hoop, not its trim. The cover sections are cosmetic, exactly like gear doors on an airframe.",
+        "Crash analysis showing the cover carries rollover load.",
       ],
       [
         SAFETY,
-        "A moving glass panel has to be impossible to trap someone with.",
-        "Rear-seat passengers and people standing beside the car are in the swept path. Without sensing and a hard stop, this fails a pinch test.",
-        "Pinch sensing that stops and reverses the glass on any obstruction.",
+        "Then prove the flaps carry no load and can't trap anyone.",
+        "Moving parts on a safety structure get scrutinised. The flaps must be shown to carry nothing, and they open right next to occupants' hands.",
+        "A cover that's demonstrably non-structural, with pinch protection on the flaps.",
       ],
       "synthesis",
-      "Keep the moving glass, but bound when and how it moves."
+      "Viable as a concept: keep the hoop fixed and the flaps purely cosmetic, and treat their motion as a safety requirement."
     ),
     winner: "synthesis",
   },
   {
-    id: "t3a1",
-    parent: "t3a",
+    id: "a1a",
+    parent: "a1",
     from: "synthesis",
-    level: "detail",
-    idea: "The sequence runs only with the car stationary: the glass lifts, the roof folds in a Z over the bar into its well, and the glass closes — about 20 seconds, with pinch sensing that stops and reverses on any obstruction.",
-    summary: "Stationary-only sequence with pinch sensing (~20 s)",
-    carried: "Same lifting glass and over-the-bar roof path.",
-    changed: "Bounded the motion to a parked car with obstruction sensing, giving up opening on the move.",
+    level: "embodiment",
+    staged: true,
+    idea: "Two rectangular flaps at the outer ends of the bar's cover, hinged at their front edge, lift as the roof's arms approach and close after them. The hoop's load path runs underneath, untouched.",
+    summary: "Two side flaps on the bar's cover, hoop untouched",
+    carried: "Same fixed hoop, opening cover and separate glass mechanism.",
+    changed: "Limited the moving cover to two small flaps where the arms actually cross.",
     point: {
-      title: "Will it seal the same every time?",
-      text: "The glass lands slightly differently every cycle, and one perimeter seal has to take up that variation for years.",
+      title: "Can three motions stay in sync?",
+      text: "The glass, the flaps and the roof's arms all move through the same space — if their timing slips, parts collide.",
       kind: "tension",
     },
     debate: debate(
       [
-        "One perimeter seal the glass presses into, like a door.",
-        "Doors close thousands of times on a single seal. The glass is just a door that opens upward.",
-        "Cycle tests where the seal leaks before the car's design life.",
+        "One controller sequences them: glass, flaps, roof — then back in reverse.",
+        "Each motion waits for the one before it to finish. Sequenced, they never share the space at the same moment.",
+        "Timing tests where the motions overlap despite sequencing.",
       ],
       [
         MANUFACTURING,
-        "The glass lands on a different spot every cycle.",
-        "A door has a striker that sets it in place. The glass swings on a long arm with no locator, so the seal sees a different squeeze each time.",
-        "A way to set the glass's position before it touches the seal.",
+        "Each mechanism has its own tolerances, and timing alone drifts.",
+        "Motors slow with age and temperature. If the sequence runs on timing, a slow flap meets a fast arm sooner or later.",
+        "Each step confirmed by position, not by time.",
       ],
       "synthesis",
-      "Keep one seal, but control exactly where the glass lands."
+      "Sequence them, but gate each step on a position sensor rather than a timer."
     ),
     winner: "synthesis",
   },
   {
-    id: "t3a1a",
-    parent: "t3a1",
+    id: "a1a1",
+    parent: "a1a",
     from: "synthesis",
     level: "detail",
-    idea: "Guide pins on the glass frame locate it into the body before it touches the seal, so the single perimeter seal sees the same compression every cycle.",
-    summary: "Locating pins set the glass before it seals",
-    carried: "Same stationary-only sequence and single perimeter seal.",
-    changed: "Added locating pins so the seal sees a repeatable squeeze.",
+    staged: true,
+    idea: "A single controller runs the sequence — glass up, flaps up, roof over the bar, flaps down, glass down — with position sensors gating each step. Parked only, about 20 seconds.",
+    summary: "Sensor-gated sequence: glass, flaps, roof (~20 s)",
+    carried: "Same flaps, hoop, glass and roof path.",
+    changed: "Gated every step on a confirmed position, and bounded it to a parked car.",
     point: {
-      title: "What happens when the pins wear?",
-      text: "Guide pins and their sockets wear, so a car in its tenth year closes differently from a new one.",
+      title: "What if a flap jams open?",
+      text: "A flap that sticks open leaves a gap in the bar's cover — and the roof can't close over it.",
       kind: "tension",
     },
     debate: debate(
       [
-        "Make the sockets replaceable and swap them at service.",
-        "Wear is predictable. A cheap socket changed every few years keeps the glass landing where it should for the car's life.",
-        "Wear data showing sockets failing between service intervals.",
+        "The sequence stops and reverses if a sensor doesn't confirm.",
+        "If a flap doesn't report closed, the roof goes back to where it started and the owner is told. Nothing moves into a space that isn't clear.",
+        "A jam the sensors can't detect.",
+      ],
+      [
+        SAFETY,
+        "A car that can be driven with a flap stuck open isn't finished.",
+        "Reversing the roof is fine, but the owner also has to know before driving off, and the open flap mustn't catch anyone.",
+        "A warning that stops the car leaving with a flap open.",
+      ],
+      "proponent",
+      "Reverse-on-fault plus a warning before driving answers the jam case."
+    ),
+    winner: "proponent",
+  },
+  {
+    id: "a1a1a",
+    parent: "a1a1",
+    from: "proponent",
+    level: "detail",
+    staged: true,
+    idea: "If any flap doesn't confirm closed, the roof reverses and the car warns the driver before it can be driven off.",
+    summary: "Unconfirmed flap reverses the roof and warns",
+    carried: "Same sensor-gated sequence.",
+    changed: "Added reverse-on-fault and a pre-drive warning.",
+    point: {
+      title: "Can a dealer reset a flap?",
+      text: "Flap hinges and sensors sit inside the bar's cover — fixing one could mean taking the bar trim apart.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "Put the hinges and sensors under a strip that comes off on its own.",
+        "If the flap mechanism sits under a removable trim strip, a dealer reaches it without touching the hoop or the rest of the cover.",
+        "Hinges that can't be reached without removing the whole bar cover.",
       ],
       [
         SERVICE,
-        "A wear part in the roof means a dealer visit for a leak.",
-        "If the sockets wear, owners find out from a wet seat. Unless checking them is part of every service, it won't happen.",
-        "A socket that can be checked and swapped in minutes at a routine service.",
+        "Hidden mechanisms turn a ten-minute fix into a day.",
+        "If resetting a flap means removing the bar's cover, every adjustment is a big job — and it'll be done badly.",
+        "A service opening that reaches the flap mechanism directly.",
       ],
       "proponent",
-      "A replaceable socket turns a leak into a routine service item."
+      "A removable strip gives direct access without opening the structure."
     ),
     winner: "proponent",
   },
   {
-    id: "t3a1a1",
-    parent: "t3a1a",
+    id: "a1a1a1",
+    parent: "a1a1a",
     from: "proponent",
     level: "detail",
-    idea: "The pins run in replaceable polymer bushes, checked at each service and swapped in minutes from inside the roof well.",
-    summary: "Swappable pin bushes checked at each service",
-    carried: "Same locating pins, glass and seal.",
-    changed: "Made the wear part a service item, adding two toleranced parts per car.",
+    staged: true,
+    idea: "The flap hinges and sensors sit under a removable trim strip on the bar, so a dealer can adjust or replace them without touching the hoop.",
+    summary: "Flap mechanism under a removable trim strip",
+    carried: "Same flaps, sensor-gated sequence and fault handling.",
+    changed: "Made the flap mechanism serviceable from outside, closing the branch.",
     point: {
-      title: "Can the line fit bushes wrong?",
-      text: "Two more toleranced parts per car are two more chances to build it wrong on the line.",
-      kind: "tension",
-    },
-    debate: debate(
-      [
-        "A bush is a cheap part that turns a leak into a service item.",
-        "The extra part costs little and saves a warranty claim. Owners never see it.",
-        "Line data showing bush fitting errors above the plant's normal rate.",
-      ],
-      [
-        MANUFACTURING,
-        "Every extra fitted part is a chance to build it wrong.",
-        "If a bush goes in crooked, the glass lands off and the seal leaks from day one — and nobody finds out until delivery.",
-        "A bush that physically can't be fitted out of position.",
-      ],
-      "proponent",
-      "The fitting risk is solvable with a fixture; the service benefit stands."
-    ),
-    winner: "proponent",
-  },
-  {
-    id: "t3a1a1a",
-    parent: "t3a1a1",
-    from: "proponent",
-    level: "detail",
-    idea: "The bushes are one moulded part pressed in with a fixture that sets their position, so assembly can't get them wrong.",
-    summary: "Fixture-pressed bushes that can't be fitted wrong",
-    carried: "Same swappable bushes, pins, glass and seal.",
-    changed: "Locked the bush position with a fixture, closing the branch.",
-    point: {
-      title: "Does each body need its own fixture?",
-      text: "Each body variant needs its own fixture setting on the line.",
+      title: "Will the strip rattle?",
+      text: "A removable strip on the bar has to sit tight and quiet for the car's life.",
       kind: "improvement",
     },
     stop: {
       reason: "settled",
-      note: "This matches today's Targa approach — nothing left that would split two reasonable people.",
+      note: "This matches how today's Targa works — the bar's side covers open for the roof's linkage. Nothing left that would split two reasonable people.",
     },
     futureEnd: true,
-    note: "The current design.",
+    note: "The current design — reached through the designer's landing-gear analogy.",
   },
   {
-    id: "t3a1a1b",
-    parent: "t3a1a1",
+    id: "a1a1b",
+    parent: "a1a1",
     from: "skeptic",
     level: "detail",
-    idea: "Bond the bushes in place instead of pressing them, so they can't be fitted loose.",
-    summary: "Bonded bushes instead of pressed ones",
-    carried: "Same pins, glass and seal.",
-    changed: "Traded swappable bushes for bonded ones.",
+    staged: true,
+    idea: "Run the glass, the flaps and the roof at the same time to halve the sequence.",
+    summary: "Run all three motions at once",
+    carried: "Same flaps, glass and roof path.",
+    changed: "Overlapped the motions to save time.",
     point: {
-      title: "Can a bonded bush be serviced?",
-      text: "A bonded bush can't be swapped at service.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "circling",
-      note: "Back to bushes you can't swap — the wear problem from two steps ago.",
-    },
-  },
-  {
-    id: "t3a1a2",
-    parent: "t3a1a",
-    from: "skeptic",
-    level: "detail",
-    idea: "Drop the pins and use a thick, soft seal that tolerates wherever the glass lands.",
-    summary: "Soft seal instead of locating pins",
-    carried: "Same stationary sequence and glass.",
-    changed: "Removed the locators, asking the seal to absorb the variation.",
-    point: {
-      title: "Will a soft seal keep water out?",
-      text: "A seal soft enough to absorb that much variation lets water and wind through at speed.",
+      title: "Do the arms reach the flaps first?",
+      text: "With everything moving at once, the roof's arms can reach the bar before the flaps are fully open.",
       kind: "tension",
     },
     stop: {
       reason: "dead_end",
-      note: "A seal that soft can't keep water out at speed.",
+      note: "Overlapping the motions puts the arms through the flaps before they're open — a collision no sensor can catch in time.",
     },
   },
   {
-    id: "t3a1b",
-    parent: "t3a1",
-    from: "skeptic",
-    level: "detail",
-    idea: "Let the roof operate up to walking pace, with the same pinch sensing.",
-    summary: "Roof operates up to walking pace",
-    carried: "Same lifting glass, roof path and sensing.",
-    changed: "Relaxed the stationary-only rule for convenience.",
-    point: {
-      title: "Who's beside the car when it moves?",
-      text: "Once the car moves, people walking beside it are in the glass's swept path.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "Above standstill, the pinch case for people beside the car doesn't close.",
-    },
-  },
-  {
-    id: "t3a2",
-    parent: "t3a",
+    id: "a1b",
+    parent: "a1",
     from: "skeptic",
     level: "embodiment",
-    idea: "The owner lifts the rear glass by hand on gas struts, and only the roof itself is powered.",
-    summary: "Glass lifted by hand, only the roof powered",
-    carried: "Same over-the-bar roof path into the rear well.",
-    changed: "Removed the glass drive to save weight and parts.",
+    staged: true,
+    idea: "Make the whole bar cover lift as one piece, so the arms never have to find a gap.",
+    summary: "Whole bar cover lifts as one piece",
+    carried: "Same fixed hoop underneath.",
+    changed: "Traded two small flaps for one big moving cover.",
     point: {
-      title: "What if the glass is left half-open?",
-      text: "With no drive or sensing, the glass can be left part-way while the roof moves underneath it.",
+      title: "Does a lifting bar still read as fixed?",
+      text: "If the whole cover rises, the bar visibly moves every time the roof does.",
       kind: "tension",
     },
     stop: {
-      reason: "dead_end",
-      note: "A hand-lifted glass with no sensing reopens every pinch risk the drive was there to manage.",
+      reason: "drifted",
+      note: "The whole bar visibly lifts — the fixed bar the idea set out to keep no longer reads as fixed.",
     },
   },
+
+  // ── Opponent wins: keep the glass fixed, slide the roof under it ────────
   {
-    id: "t3b",
-    parent: "t3",
+    id: "b",
+    parent: "t0",
     from: "skeptic",
-    level: "embodiment",
-    idea: "Keep the rear glass fixed and slide the roof back over the bar so it stacks on top of the glass when open.",
-    summary: "Roof slides back and stacks on the fixed rear glass",
-    carried: "The roof still goes rearward past the bar; glass and bar both stay.",
-    changed: "Avoided a moving window by parking the roof on top of it.",
-    point: {
-      title: "Can you still see out the back?",
-      text: "A roof stacked on the rear glass covers most of the rear window and sits in the airflow.",
-      kind: "tension",
-    },
-    stop: {
-      reason: "dead_end",
-      note: "With the roof stacked on the glass, the rear view is mostly blocked — and the roof is no longer hidden.",
-    },
-  },
-  {
-    id: "t3c",
-    parent: "t3",
-    from: "synthesis",
-    level: "embodiment",
-    idea: "Split the roof into two rigid panels that slide on rails under the fixed rear glass, so neither the glass nor the bar has to move.",
-    summary: "Two rigid panels slide under a fixed rear glass",
-    carried: "The roof still ends up under the rear window; glass and bar both fixed.",
-    changed: "Removed the moving glass, betting on rails instead.",
+    level: "concept",
+    idea: "Keep the rear glass fixed and slide the roof back under it on rails, so only the roof moves.",
+    summary: "Glass stays put; roof slides under it on rails",
+    carried: "The roof still tucks under the rear glass; the bar stays fixed.",
+    changed: "Kept the glass still and put all the motion in the roof.",
     point: {
       title: "Is there room under the glass?",
-      text: "Rails need a clear gap between the rear glass and the rear seat backs that the cabin doesn't have.",
+      text: "Rails need a clear channel between the rear glass and the rear seat backs that the cabin doesn't have.",
       kind: "tension",
     },
     debate: debate(
       [
-        "Lower the rear seat backs a little and the gap appears.",
-        "The +2 seats are occasional seats. A few centimetres off their backrests buys a roof that never needs a moving window.",
-        "Rear seats failing their minimum seated height once lowered.",
+        "Make the roof thinner and the channel shrinks with it.",
+        "The channel only has to be as deep as the roof. A thinner roof, or one in parts, fits a shallower gap.",
+        "A roof too thin to stay stiff at speed.",
       ],
       [
         PACKAGING,
-        "Then the rear seats stop being seats.",
-        "There's no slack left in the rear seat package. Take height from the backrests and an adult no longer fits; take it from the glass and you change the roofline.",
-        "A rail section thin enough to fit without touching seats or glass.",
+        "There's no slack under the glass for any channel.",
+        "The rear seat package has no spare height. Whatever the roof's thickness, the rail and its guides take space that's already used.",
+        "A channel that fits without touching seats or glass.",
       ],
       "skeptic",
-      "The seat package has no slack, and the designer's fix spends what isn't there."
+      "The space objection is concrete; the designer's answer only helps if the roof can be split."
+    ),
+    winner: "skeptic",
+  },
+  {
+    id: "b1",
+    parent: "b",
+    from: "skeptic",
+    level: "concept",
+    idea: "Split the roof into two short panels that stack under the glass, so the rail channel only has to be half as deep.",
+    summary: "Two short panels stack to halve the depth",
+    carried: "Glass still fixed, roof still slides under it.",
+    changed: "Split the roof in two to shrink the channel.",
+    point: {
+      title: "Will two panels seal at the joint?",
+      text: "Two panels meeting across the roof add a seam that has to stay watertight and quiet at speed.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "An overlapping joint seals like a sunroof does.",
+        "Sliding sunroofs seal a moving panel every day. Two panels with an overlap are the same problem twice.",
+        "Wind tests where the joint whistles at motorway speed.",
+      ],
+      [
+        MANUFACTURING,
+        "A sunroof seals into a fixed frame; two moving panels seal into each other.",
+        "Panel to panel, there's no fixed reference — tolerances stack across both, and the joint moves every cycle.",
+        "Panels that telescope instead, so each seals into a fixed frame.",
+      ],
+      "synthesis",
+      "Splitting is still worth pursuing, but as panels that telescope rather than butt together."
+    ),
+    winner: "synthesis",
+  },
+  {
+    id: "b1c",
+    parent: "b1",
+    from: "synthesis",
+    level: "concept",
+    idea: "The two panels telescope — the front one slides under the rear one, then both slide back under the glass together.",
+    summary: "Telescoping panels slide under the glass together",
+    carried: "Two panels, fixed glass, rails under it.",
+    changed: "Turned the joint into a telescope so each panel seals into a frame.",
+    point: {
+      title: "Can a telescope fit curved rails?",
+      text: "The roof is curved, so telescoping panels need curved rails — and two nested curves need even more depth.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "Match the curves and the nesting adds almost nothing.",
+        "If both panels share one radius, the inner one sits tight under the outer one. The stack is barely thicker than a single panel.",
+        "Panels that can't share a radius without changing the roofline.",
+      ],
+      [
+        PACKAGING,
+        "Nested curves still need clearance between them, and that clearance is depth.",
+        "Two curved panels can't touch as they slide. The gap, plus the rails, plus the guides, comes out of the channel you don't have.",
+        "A rail section thin enough to fit the nested stack under the glass.",
+      ],
+      "proponent",
+      "Matching curves is plausible enough to try in form — the depth is now an embodiment question."
+    ),
+    winner: "proponent",
+  },
+  {
+    id: "b1c1",
+    parent: "b1c",
+    from: "proponent",
+    level: "embodiment",
+    idea: "Both panels share one radius and run in a single curved aluminium rail on each side, nested tight under the fixed glass.",
+    summary: "Shared-radius panels in one curved rail",
+    carried: "Telescoping panels under a fixed glass.",
+    changed: "Committed to one shared radius and a single rail per side.",
+    point: {
+      title: "Can that rail be made thin enough?",
+      text: "A curved rail carrying two panels needs a custom section — and thin enough to fit is too weak to hold them.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "A custom extrusion is normal for a low-volume car.",
+        "We extrude bespoke sections for trim all the time. A rail is just a stiffer one.",
+        "Stiffness tests where the thin rail flexes under the panels.",
+      ],
+      [
+        MANUFACTURING,
+        "Thin and stiff pull in opposite directions.",
+        "To fit under the glass the section has to be shallow; to carry two panels without rattling it has to be deep. You can't have both.",
+        "A material or section that is both shallow and stiff enough.",
+      ],
+      "skeptic",
+      "The rail has to be shallow and stiff at once, and nothing on this path makes it both."
     ),
   },
   {
-    id: "t3c1",
-    parent: "t3c",
+    id: "b1c1a",
+    parent: "b1c1",
     from: "skeptic",
-    level: "embodiment",
-    idea: "Raise the rear glass line by a few centimetres to open a rail channel underneath it.",
-    summary: "Raise the rear glass line to make room for rails",
-    carried: "Panels still slide on rails under a fixed rear glass.",
-    changed: "Changed the roofline to create the gap.",
+    level: "detail",
+    idea: "Make the rail deeper for stiffness and recess it into the rear seat backs.",
+    summary: "Deeper rail recessed into the seat backs",
+    carried: "Same shared-radius panels and rail.",
+    changed: "Took the rail's depth from the seat backs.",
     point: {
-      title: "Where does that space come from?",
-      text: "Raising the glass line takes the space from head room over the rear seats.",
+      title: "Where does that depth come from?",
+      text: "Recessing the rail takes the depth from the rear seat backs — the space the whole branch was trying not to touch.",
       kind: "tension",
     },
     stop: {
       reason: "circling",
-      note: "Back to the question from two steps ago — there's no free volume under the rear glass.",
+      note: "Back to the first question on this branch — there's no free depth under the glass.",
     },
   },
   {
-    id: "t3c2",
-    parent: "t3c",
+    id: "b1a",
+    parent: "b1",
+    from: "skeptic",
+    level: "embodiment",
+    idea: "Keep the rear panel fixed as a glass panel and let only the front panel slide back under it.",
+    summary: "Only the front half opens",
+    carried: "Two panels under a fixed glass.",
+    changed: "Gave up opening the rear half to avoid the joint.",
+    point: {
+      title: "Is half-open still a Targa?",
+      text: "With the rear panel fixed, only half the roof opens.",
+      kind: "tension",
+    },
+    stop: {
+      reason: "drifted",
+      note: "Only half the roof opens — it's become a sunroof, not the open-air Targa the idea set out to be.",
+    },
+  },
+  {
+    id: "b2",
+    parent: "b",
     from: "proponent",
     level: "embodiment",
-    idea: "Lower the rear seat backs so the rails fit, making the rear seats suitable for children only.",
+    idea: "Lower the rear seat backs so a single-piece roof fits on rails under the glass, making the rear seats suitable for children only.",
     summary: "Lower rear seat backs to fit the rails",
-    carried: "Panels still slide on rails under a fixed rear glass.",
-    changed: "Spent rear seat height to make room for the rails.",
+    carried: "Glass fixed, roof on rails under it.",
+    changed: "Spent rear seat height to make room.",
     point: {
       title: "Do adults still fit in the back?",
       text: "Lowered backrests drop the rear seats below the height an adult needs.",
@@ -910,6 +521,127 @@ const SPECS: Spec[] = [
     stop: {
       reason: "dead_end",
       note: "The rear seats stop fitting adults — giving up what the problem said to keep.",
+    },
+  },
+
+  // ── Synthesis: move the glass a different way — down ────────────────────
+  {
+    id: "c",
+    parent: "t0",
+    from: "synthesis",
+    level: "concept",
+    idea: "Move the glass a different way: lower the rear glass down into the body like a side window, and let the roof stow above it.",
+    summary: "Rear glass drops into the body; roof stows above",
+    carried: "The roof still ends up where the rear glass was; the bar stays fixed.",
+    changed: "Moved the glass down instead of up, so nothing swings near the bar.",
+    point: {
+      title: "Where does the glass drop to?",
+      text: "Below the rear glass sit the rear seat backs and then the engine — a glass that size needs a deep well.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "A curved glass can drop into a narrow well behind the seats.",
+        "Side windows drop into thin doors every day. Follow the glass's own curve and the well can be slim.",
+        "A well that can't be made deep enough without touching the engine.",
+      ],
+      [
+        PACKAGING,
+        "This glass is far taller than a side window, and its curve needs a deep well.",
+        "A side window drops a few hundred millimetres. The rear glass would need most of its height in a well that ends at the engine.",
+        "A glass short or flat enough to fit the depth above the engine.",
+      ],
+      "skeptic",
+      "The well depth isn't there; only a different glass shape could change that."
+    ),
+    winner: "skeptic",
+  },
+  {
+    id: "c1",
+    parent: "c",
+    from: "skeptic",
+    level: "concept",
+    idea: "Make the rear glass flatter and shorter so it can drop into a shallow well behind the seats.",
+    summary: "Flatter, shorter glass drops into a shallow well",
+    carried: "The glass still drops down; the roof stows above it.",
+    changed: "Reshaped the glass to fit the well.",
+    point: {
+      title: "Is a flat glass still this car?",
+      text: "Flattening and shortening the rear glass changes the car's rear profile, which is a big part of how it's recognised.",
+      kind: "tension",
+    },
+    debate: debate(
+      [
+        "A slightly flatter glass is a small price for a roof that disappears.",
+        "Most people read the bar, not the glass's exact curve. A modest change keeps the car recognisable.",
+        "Clinics where people no longer recognise the car from the rear.",
+      ],
+      [
+        PACKAGING,
+        "Even flat, the glass is taller than the well behind the seats.",
+        "Flattening saves curvature, not height. The glass still has to drop most of its height into space that isn't there.",
+        "A glass that splits, or a well that goes deeper.",
+      ],
+      "skeptic",
+      "Flattening doesn't solve height, which is the real constraint."
+    ),
+  },
+  {
+    id: "c1a",
+    parent: "c1",
+    from: "skeptic",
+    level: "embodiment",
+    idea: "Split the rear glass into two halves that drop separately into two shallow wells.",
+    summary: "Split the glass into two halves that drop",
+    carried: "Glass still drops down, roof stows above.",
+    changed: "Split the glass to halve the drop.",
+    point: {
+      title: "Can you see through a split glass?",
+      text: "A seam across the rear glass sits right in the driver's rear view and adds another seal.",
+      kind: "tension",
+    },
+    stop: {
+      reason: "dead_end",
+      note: "A seam across the rear glass blocks the rear view and adds a seal that has to move every cycle.",
+    },
+  },
+  {
+    id: "c1b",
+    parent: "c1",
+    from: "proponent",
+    level: "embodiment",
+    idea: "Raise the engine cover line to make a deeper well for the glass.",
+    summary: "Raise the engine cover for a deeper well",
+    carried: "Glass still drops into a well.",
+    changed: "Moved the engine cover up to make room.",
+    point: {
+      title: "Is a raised rear still the same car?",
+      text: "Raising the engine cover changes the car's whole rear profile.",
+      kind: "tension",
+    },
+    stop: {
+      reason: "drifted",
+      note: "Raising the engine cover changes the car's whole rear — it's no longer the same car.",
+    },
+  },
+  {
+    id: "c2",
+    parent: "c",
+    from: "proponent",
+    level: "embodiment",
+    idea: "Let the glass drop into a well over the engine, with a heat shield between them.",
+    summary: "Glass drops into a heat-shielded well over the engine",
+    carried: "Glass still drops down.",
+    changed: "Used the space over the engine for the well.",
+    point: {
+      title: "Can the glass live over the engine?",
+      text: "Engine heat and service access both sit right where the well would go.",
+      kind: "tension",
+    },
+    by: SERVICE,
+    stop: {
+      reason: "dead_end",
+      note: "The well blocks engine access and sits in its heat — every service would mean removing the glass mechanism.",
     },
   },
 ];
@@ -929,19 +661,36 @@ function debate(
   };
 }
 
+// What a staged dead end needs to play out once the designer adds input.
+export interface DemoStage {
+  suggestedInput: { text: string; side: InputSide };
+  debate: Debate;
+  winner: Outcome;
+  // The hidden nodes, parents before children, with their links stripped —
+  // they're re-linked one by one as the branch plays out.
+  reveal: IdeaNode[];
+}
+
 // Fills in the bookkeeping a real node carries, and derives the tree links
-// from each node's parent so they can't disagree.
-export function buildDemoTree(): { nodes: NodeMap; rootId: string } {
-  const nodes: NodeMap = {};
+// from each node's parent so they can't disagree. Staged nodes are held back
+// in `stages`, keyed by the dead end that unlocks them.
+export function buildDemoTree(): {
+  nodes: NodeMap;
+  rootId: string;
+  stages: Record<string, DemoStage>;
+} {
+  const all: NodeMap = {};
+  const specs: Record<string, Spec> = {};
   for (const spec of SPECS) {
-    const parent = spec.parent ? nodes[spec.parent] : null;
-    const node: IdeaNode = {
+    specs[spec.id] = spec;
+    const parent = spec.parent ? all[spec.parent] : null;
+    all[spec.id] = {
       id: spec.id,
       parentId: spec.parent,
       depth: parent ? parent.depth + 1 : 0,
       level: spec.level,
       stop: spec.stop ?? null,
-      resumed: spec.resumed ?? false,
+      resumed: false,
       futureEnd: spec.futureEnd ?? false,
       fromOutcome: spec.from,
       ideaState: spec.idea,
@@ -952,7 +701,8 @@ export function buildDemoTree(): { nodes: NodeMap; rootId: string } {
       // takes the opponent who argued its parent's point.
       consideration: {
         ...spec.point,
-        raisedBy: spec.debate?.con.speaker ?? parent?.debate?.con.speaker ?? PACKAGING,
+        raisedBy:
+          spec.by ?? spec.debate?.con.speaker ?? parent?.debate?.con.speaker ?? PACKAGING,
       },
       debate: spec.debate ?? null,
       status: "ready",
@@ -966,8 +716,31 @@ export function buildDemoTree(): { nodes: NodeMap; rootId: string } {
       imageStatus: "idle",
       imageError: null,
     };
-    nodes[spec.id] = node;
-    if (parent && spec.from) parent.childByOutcome[spec.from] = spec.id;
   }
-  return { nodes, rootId: "t0" };
+
+  const nodes: NodeMap = {};
+  const stages: Record<string, DemoStage> = {};
+  // The dead end a staged node hangs under.
+  const triggerOf = (spec: Spec): string | null => {
+    let current = spec.parent ? specs[spec.parent] : undefined;
+    while (current) {
+      if (current.unlock) return current.id;
+      current = current.parent ? specs[current.parent] : undefined;
+    }
+    return null;
+  };
+
+  for (const spec of SPECS) {
+    const node = all[spec.id];
+    if (spec.unlock) stages[spec.id] = { ...spec.unlock, reveal: [] };
+    if (spec.staged) {
+      const trigger = triggerOf(spec);
+      if (trigger) stages[trigger].reveal.push(node);
+      continue;
+    }
+    nodes[spec.id] = node;
+    if (spec.parent && spec.from) nodes[spec.parent].childByOutcome[spec.from] = spec.id;
+  }
+
+  return { nodes, rootId: "t0", stages };
 }

@@ -185,7 +185,7 @@ export const SAMPLES: Sample[] = [
     label: "Targa roof",
     problem:
       "A Targa's fixed steel roll bar is its signature and part of its rollover protection, so it has to stay. But the roof between the windshield and the bar still needs to disappear for open-air driving — in a rear-engine 2+2 with almost no spare space.",
-    seed: "Keep the fixed steel Targa bar, and make the roof section between the windshield and the bar retractable, so the car goes fully open-air without losing the bar.",
+    seed: "Keep the fixed Targa bar and tuck the roof away under the rear glass when it's open, so the seats, the trunk and the engine bay all stay untouched.",
   },
   {
     label: "Vehicle rear cabin",

@@ -35,6 +35,10 @@ interface Props {
   // "+" on a node opens a pop-up there to add the designer's own input to its
   // debate; composingFor is the node it's open on.
   composingFor: string | null;
+  // Demo only: staged dead ends where the designer's input unlocks the branch,
+  // with a hint to offer. Their "+" pulses, and a demo-hint card beside the
+  // node shows the hint — kept out of the "+" pop-up, which stays the product.
+  inputHints: Record<string, { text: string; side: InputSide }>;
   onOpenInput: (id: string) => void;
   onCloseInput: () => void;
   onAddInput: (
@@ -159,6 +163,51 @@ function wrap(text: string, maxChars: number, maxLines: number): string[] {
   return lines.length > 0 ? lines : [text];
 }
 
+// A demo-only hint card beside a staged dead end. Deliberately styled apart
+// from the product UI (dashed amber, "Demo hint") so it reads as a presenter's
+// cue, not part of the tool.
+function DemoHint({
+  left,
+  top,
+  side,
+  arrow,
+  text,
+  onTry,
+  onDismiss,
+}: {
+  left: number;
+  top: number;
+  side: "left" | "right";
+  arrow: number;
+  text: string;
+  onTry: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className={`p8-demo-hint p8-demo-hint-${side}`}
+      style={{ left, top, "--arrow": `${arrow}px` } as CSSProperties}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="p8-demo-hint-head">
+        <span className="p8-demo-hint-tag">Demo hint</span>
+        <button className="p8-popover-close" onClick={onDismiss} aria-label="Dismiss hint">
+          ✕
+        </button>
+      </div>
+      <p>
+        The debate stalled here. Something you know from <em>another field</em> might get it
+        moving — for example:
+      </p>
+      <blockquote>{text}</blockquote>
+      <button className="p8-demo-hint-try" onClick={onTry}>
+        Try it
+      </button>
+    </div>
+  );
+}
+
 // One node in the overview: a small card with a one-line summary and — for a
 // stopped branch — its symbol. Its band gives the level. Hover shows the rest.
 function CompactNode({
@@ -239,6 +288,7 @@ export function TreeView({
   onSelect,
   onClearSelection,
   composingFor,
+  inputHints,
   onOpenInput,
   onCloseInput,
   onAddInput,
@@ -263,6 +313,15 @@ export function TreeView({
   const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({});
 
   const [overview, setOverview] = useState(false);
+
+  // Demo hints: which the presenter dismissed, and which "Try it" should
+  // pre-fill the "+" pop-up with.
+  const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set());
+  const [prefillFor, setPrefillFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (composingFor !== prefillFor) setPrefillFor(null);
+    // Only clears once the pop-up moves on from the pre-filled node.
+  }, [composingFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Heights must be known before layout, since rows are sized to their tallest
   // node.
@@ -976,7 +1035,7 @@ export function TreeView({
                       gets a stopped branch going again. Shows how many inputs
                       the node already has. */}
                   <g
-                    className="p8-node-add"
+                    className={`p8-node-add ${inputHints[node.id] ? "p8-node-add-invite" : ""}`}
                     transform={`translate(${NODE_W - 11}, ${h - 11})`}
                     onPointerDown={(e) => {
                       e.stopPropagation();
@@ -988,6 +1047,9 @@ export function TreeView({
                       Add what you know to this debate
                       {node.inputs.length > 0 ? ` (${node.inputs.length} added)` : ""}
                     </title>
+                    {inputHints[node.id] && (
+                      <circle cx={11} cy={11} r={10} className="p8-add-ring" />
+                    )}
                     <circle cx={11} cy={11} r={10} className="p8-add-circle" />
                     {node.status === "debating" ? (
                       <Spinner cx={11} cy={11} r={5.5} />
@@ -1050,6 +1112,45 @@ export function TreeView({
           })}
         </div>
 
+        {/* Demo hint cards: beside each staged dead end, pointing at it. Hidden
+            while that node's "+" pop-up is open or the node is off-screen. */}
+        {!overview &&
+          Object.entries(inputHints).map(([id, hint]) => {
+            const node = nodes[id];
+            const container = containerRef.current;
+            if (!node || !positions[id] || !container) return null;
+            if (dismissedHints.has(id) || composingFor === id) return null;
+            const pos = at(id);
+            const nodeLeft = view.x + view.k * pos.x;
+            const nodeRight = view.x + view.k * (pos.x + NODE_W);
+            const nodeTop = view.y + view.k * pos.y;
+            const nodeBottom = view.y + view.k * (pos.y + heights[id]);
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            if (nodeRight < 0 || nodeLeft > cw || nodeBottom < 0 || nodeTop > ch) return null;
+            const HINT_W = 290;
+            const GAP = 16;
+            const onLeft = nodeLeft - GAP - HINT_W >= 8;
+            const left = onLeft ? nodeLeft - GAP - HINT_W : Math.min(nodeRight + GAP, cw - HINT_W - 8);
+            const mid = (Math.max(nodeTop, 0) + Math.min(nodeBottom, ch)) / 2;
+            const top = Math.min(Math.max(mid - 70, 8), ch - 200);
+            return (
+              <DemoHint
+                key={`hint-${id}`}
+                left={left}
+                top={top}
+                side={onLeft ? "left" : "right"}
+                arrow={Math.min(Math.max(mid - top, 18), 180)}
+                text={hint.text}
+                onTry={() => {
+                  setPrefillFor(id);
+                  onOpenInput(id);
+                }}
+                onDismiss={() => setDismissedHints((prev) => new Set(prev).add(id))}
+              />
+            );
+          })}
+
         {(() => {
           // The pop-up never covers its node: it opens under the node's "+",
           // else above the node's top edge, else beside the node — whichever
@@ -1100,6 +1201,7 @@ export function TreeView({
               arrow={arrow}
               title={node.consideration.title}
               inputs={node.inputs}
+              prefill={prefillFor === node.id ? inputHints[node.id] ?? null : null}
               stopped={isTerminal(node)}
               busy={node.status === "debating"}
               onAdd={(input, action) => onAddInput(node.id, input, action)}
