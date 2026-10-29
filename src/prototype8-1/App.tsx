@@ -17,7 +17,8 @@ import {
   SAMPLES,
   debaterPair,
 } from "./config";
-import { buildDemoTree, DEMO_PAIR_ID, DEMO_PROBLEM, DEMO_SEED, type DemoStage } from "./demo";
+import { buildDemoTree, type DemoDef, type DemoStage } from "./demo";
+import { DEMOS } from "./demos";
 import { createLimiter } from "./limit";
 import {
   futurePicks,
@@ -58,6 +59,11 @@ export default function App() {
   const [playingFrom, setPlayingFrom] = useState<string | null>(null);
   // Whether the tree on screen is the pre-built demo rather than a live game.
   const [isDemo, setIsDemo] = useState(false);
+  const [demoLabel, setDemoLabel] = useState("");
+  // Bumped whenever a new tree is loaded or started, so the canvas starts
+  // fresh (view, overview, dismissed demo hints) rather than carrying state
+  // over from the previous tree.
+  const [treeKey, setTreeKey] = useState(0);
   // The demo's staged dead ends, keyed by node: what the designer's input
   // unlocks there. Each plays out once and is then removed.
   const [demoStages, setDemoStages] = useState<Record<string, DemoStage>>({});
@@ -125,6 +131,7 @@ export default function App() {
         imageError: null,
       };
       setNodes({ [id]: root });
+      setTreeKey((k) => k + 1);
       setIsDemo(false);
       setDemoStages({});
       setRootId(id);
@@ -602,14 +609,16 @@ export default function App() {
     void ensureDebate(id, { ...nodes, [id]: resumed });
   };
 
-  // Loads the pre-built Targa tree: no key and no calls needed to explore it.
+  // Loads a pre-built demo tree: no key and no calls needed to explore it.
   // It's an ordinary tree, so with a key any open node can be developed on.
-  const loadDemo = () => {
-    const demo = buildDemoTree();
-    setProblem(DEMO_PROBLEM);
-    setSeed(DEMO_SEED);
-    setPairId(DEMO_PAIR_ID);
+  const loadDemo = (def: DemoDef) => {
+    const demo = buildDemoTree(def);
+    setProblem(def.problem);
+    setSeed(def.seed);
+    setPairId(def.pairId);
+    setDemoLabel(def.label);
     setNodes(demo.nodes);
+    setTreeKey((k) => k + 1);
     setDemoStages(demo.stages);
     setRootId(demo.rootId);
     setSelectedId(demo.rootId);
@@ -644,13 +653,19 @@ export default function App() {
         >
           {startStatus === "loading" ? "Opening…" : rootId ? "Start over" : "Start the game"}
         </button>
-        <button onClick={loadDemo} title="A pre-built tree: the Targa roof. No API key or calls needed.">
-          Load demo tree
-        </button>
+        {DEMOS.map((def) => (
+          <button
+            key={def.id}
+            onClick={() => loadDemo(def)}
+            title={`A pre-built tree: ${def.label}. No API key or calls needed.`}
+          >
+            Demo: {def.label}
+          </button>
+        ))}
         {isDemo && (
           <span className="p8-demo-note">
-            <strong>Demo tree</strong> — pre-built, no calls used. With an API key you can keep
-            developing from any open node.
+            <strong>Demo — {demoLabel}</strong>: pre-built, no calls used. With an API key you can
+            keep developing from any open node.
           </span>
         )}
         {startError && <span className="p8-error">{startError}</span>}
@@ -762,6 +777,7 @@ export default function App() {
       {rootId && (
         <div className="p8-board">
           <TreeView
+            key={treeKey}
             nodes={nodes}
             rootId={rootId}
             selectedId={selectedId}

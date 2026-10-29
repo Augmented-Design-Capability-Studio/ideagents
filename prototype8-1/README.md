@@ -15,10 +15,40 @@ npm run dev
 Open Prototype 8 on the home page and pick 8.1 (or go to `/prototype8-1/`), click Agent and
 paste a Gemini API key. A sample problem and seed idea are pre-filled.
 
-## Demo tree
+## Demo trees
 
-**Load demo tree** loads a pre-built tree with no API key and no calls: the
-**Targa roof**. The fixed steel bar has to stay, and the original idea is
+Two **Demo** buttons (next to Start) load pre-built trees with no API key and
+no calls. Each stages one dead end that only the designer's input — an idea
+from another field — unlocks. The data lives in `src/prototype8-1/demos/`, one
+file per demo, on a shared engine in `demo.ts`; adding a demo means adding a
+file and listing it in `demos/index.ts`.
+
+### Prius (5th gen)
+
+The 5th-generation Prius's big change over the 4th: a tall, efficient wedge
+became a low, sleek, coupe-like arc — lower roof, steeply raked windshield —
+while staying a practical, efficient four-door. The original idea is "make it
+genuinely desirable to look at without losing efficiency or practicality".
+
+- **Lower the roof and rake the windshield** — the route the real car took,
+  **staged to dead-end**: with the roof down and the windshield laid back,
+  there's nowhere for the instrument cluster (the wheel rim hides it from
+  behind; on the deep dash it reflects in the glass). The demo hint offers a
+  **broadcast-teleprompter** engineer's idea: put the text right on the
+  reader's line of sight, far away, so the eyes barely move. Unlocked, it plays
+  out to a small cluster set far forward and read over the wheel → a smaller,
+  flat-top wheel → a visor moulded into the dash below the reflection line, and
+  **settles** as the current car's layout. A head-up display dead-ends; a
+  bigger cluster goes in circles.
+- **Keep the body, look lower** through dark pillars, cladding and light bars —
+  goes in circles and dead-ends: surfaces don't change proportions.
+- **Read as a coupe, keep four doors** — rear door handles hidden in the
+  C-pillar, with a drained pocket so they don't freeze; **settles** as the
+  current car's handles. A true fastback dead-ends on rear headroom.
+
+### Targa roof
+
+The **Targa roof**. The fixed steel bar has to stay, and the original idea is
 already to **tuck the roof away under the rear glass** — so every debate is
 about *how*. Three approaches grow from it:
 
